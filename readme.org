@@ -1,0 +1,4 @@
+* about
+  stardict go版本parser
+
+  WIP!!
