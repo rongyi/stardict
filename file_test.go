@@ -40,6 +40,7 @@ func TestDictionary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s\n", "NewIndex get nil Index")
 	}
+	idx.Parse()
 
 	d, err := NewDictionary(info, idx, "/tmp/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.dict.dz")
 	if err != nil {

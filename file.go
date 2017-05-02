@@ -109,7 +109,7 @@ func (idx *Index) NextWord() (string, error) {
 	end := bytes.IndexByte(idx.content[idx.offset:], '\000')
 	end += idx.offset
 	wordStr := string(idx.content[idx.offset:end])
-	fmt.Println(wordStr)
+	// fmt.Println(wordStr)
 
 	newWord := Word{
 		w: wordStr,
@@ -129,7 +129,7 @@ func (idx *Index) NextWord() (string, error) {
 		r := bytes.NewReader(offByte)
 		binary.Read(r, binary.BigEndian, &wOffset)
 		idx.offset += 4
-		fmt.Printf("offset reading: %d\n", wOffset)
+		// fmt.Printf("offset reading: %d\n", wOffset)
 		newWord.offset = wOffset
 	} else {
 		return "", errorBits
@@ -138,7 +138,7 @@ func (idx *Index) NextWord() (string, error) {
 	sizeByte := idx.content[idx.offset : idx.offset+4]
 	r := bytes.NewReader(sizeByte)
 	binary.Read(r, binary.BigEndian, &wSize)
-	fmt.Printf("size reading: %d\n", wSize)
+	// fmt.Printf("size reading: %d\n", wSize)
 	newWord.size = wSize
 
 	idx.offset += 4
@@ -151,6 +151,11 @@ func (idx *Index) NextWord() (string, error) {
 	idx.wordDict[wordStr] = append(idx.wordDict[wordStr], newWord)
 
 	return wordStr, nil
+}
+
+func (idx *Index) Parse() {
+	for _, err := idx.NextWord(); err == nil ; _, err = idx.NextWord() {
+	}
 }
 
 type Dictionary struct {
