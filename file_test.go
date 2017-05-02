@@ -21,4 +21,12 @@ func TestIndexNew(t *testing.T) {
 	for w, err := idx.NextWord(); err == nil ; w, err = idx.NextWord() {
 		fmt.Println(w)
 	}
+	fmt.Println(len(idx.wordDict))
+	fmt.Println(len(idx.wordLst))
+	input := "堆金积玉"
+	w, ok := idx.wordDict[input]
+	if !ok {
+		t.Fatalf("%s\n", "fail to get word: 堆金积玉")
+	}
+	fmt.Println(w)
 }

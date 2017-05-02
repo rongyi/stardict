@@ -65,9 +65,9 @@ func (i *Info) String() string {
 
 type Word struct {
 	w      string // the word
-	offset int    // start position
-	size   int    // size
-	index  int    // index serial number
+	offset uint32    // start position
+	size   uint32    // size
+	index  uint32    // index serial number
 }
 
 type Index struct {
@@ -75,7 +75,7 @@ type Index struct {
 	offset    int
 	index     uint32
 	indexBits uint32
-	wordDict  map[string]Word
+	wordDict  map[string][]Word
 	wordLst   []Word
 }
 
@@ -90,7 +90,7 @@ func NewIndex(filename string) (*Index, error) {
 		offset:    0,
 		index:     0,
 		indexBits: 32,
-		wordDict:  make(map[string]Word),
+		wordDict:  make(map[string][]Word),
 	}
 
 	return idx, nil
@@ -109,6 +109,10 @@ func (idx *Index) NextWord() (string, error) {
 	wordStr := string(idx.content[idx.offset:end])
 	fmt.Println(wordStr)
 
+	newWord := Word{
+		w: wordStr,
+	}
+
 	idx.offset = end + 1
 	if idx.indexBits == 64 {
 		var wOffset uint64
@@ -116,6 +120,7 @@ func (idx *Index) NextWord() (string, error) {
 		r := bytes.NewReader(offByte)
 		binary.Read(r, binary.BigEndian, &wOffset)
 		idx.offset += 8
+		newWord.offset = uint32(wOffset)
 	} else if idx.indexBits == 32 {
 		var wOffset uint32
 		offByte := idx.content[idx.offset : idx.offset+4]
@@ -123,6 +128,7 @@ func (idx *Index) NextWord() (string, error) {
 		binary.Read(r, binary.BigEndian, &wOffset)
 		idx.offset += 4
 		fmt.Printf("offset reading: %d\n", wOffset)
+		newWord.offset = wOffset
 	} else {
 		return "", errorBits
 	}
@@ -131,9 +137,16 @@ func (idx *Index) NextWord() (string, error) {
 	r := bytes.NewReader(sizeByte)
 	binary.Read(r, binary.BigEndian, &wSize)
 	fmt.Printf("size reading: %d\n", wSize)
+	newWord.size = wSize
 
 	idx.offset += 4
+
+	newWord.index = idx.index
 	idx.index++
+
+	// update the cache
+	idx.wordLst = append(idx.wordLst, newWord)
+	idx.wordDict[wordStr] = append(idx.wordDict[wordStr], newWord)
 
 	return "", nil
 }
