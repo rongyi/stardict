@@ -12,6 +12,8 @@ import (
 var (
 	errorEOF  = errors.New("end of index, no next word")
 	errorBits = errors.New("offset bits only support 64 or 32")
+	errorRead = errors.New("read file error")
+	errorGzip = errors.New("gunzip fail")
 )
 
 // Info indicate the stardict ifo file
@@ -65,9 +67,9 @@ func (i *Info) String() string {
 
 type Word struct {
 	w      string // the word
-	offset uint32    // start position
-	size   uint32    // size
-	index  uint32    // index serial number
+	offset uint32 // start position
+	size   uint32 // size
+	index  uint32 // index serial number
 }
 
 type Index struct {
@@ -149,4 +151,31 @@ func (idx *Index) NextWord() (string, error) {
 	idx.wordDict[wordStr] = append(idx.wordDict[wordStr], newWord)
 
 	return wordStr, nil
+}
+
+type Dictionary struct {
+	info  *Info
+	index *Index
+	content []byte
+	offset uint32
+}
+
+
+func NewDictionary(i *Info, idx *Index, filename string) (*Dictionary, error) {
+	d := &Dictionary{
+		info: i,
+		index: idx,
+		offset: 0,
+	}
+	raw, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, errorRead
+	}
+	content, err := Gunzip(raw)
+	if err != nil {
+		return nil, errorGzip
+	}
+	d.content = content
+
+	return d, nil
 }
