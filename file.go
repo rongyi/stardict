@@ -154,17 +154,16 @@ func (idx *Index) NextWord() (string, error) {
 }
 
 type Dictionary struct {
-	info  *Info
-	index *Index
+	info    *Info
+	index   *Index
 	content []byte
-	offset uint32
+	offset  uint32
 }
-
 
 func NewDictionary(i *Info, idx *Index, filename string) (*Dictionary, error) {
 	d := &Dictionary{
-		info: i,
-		index: idx,
+		info:   i,
+		index:  idx,
 		offset: 0,
 	}
 	raw, err := ioutil.ReadFile(filename)
@@ -178,4 +177,59 @@ func NewDictionary(i *Info, idx *Index, filename string) (*Dictionary, error) {
 	d.content = content
 
 	return d, nil
+}
+
+func (d *Dictionary) IsSameTypeSequence() bool {
+	_, ok := d.info.Dict["sametypesequence"]
+	return ok
+}
+
+func (d *Dictionary) GetWord(word string) []map[rune]string {
+	index, ok := d.index.wordDict[word]
+	if !ok {
+		return nil
+	}
+	var ret []map[rune]string
+	for _, curWord := range index {
+		if d.IsSameTypeSequence() {
+			// set offset to this word meaning
+			d.offset = curWord.offset
+			curValue := d.getWordSameSequence(curWord)
+			ret = append(ret, curValue)
+		}
+		// TODO
+	}
+	return ret
+}
+
+func (d *Dictionary) getWordSameSequence(word Word) map[rune]string {
+	ret := make(map[rune]string)
+	sametypesequence := d.info.Dict["sametypesequence"]
+
+	startOffset := d.offset
+	for i, c := range sametypesequence {
+		if strings.Index("mlgtxykwhnr", string(c)) > 0 {
+			// last one
+			if i == len(sametypesequence)-1 {
+				value := d.getEntryFieldSize(word.size - (d.offset - startOffset))
+				ret[c] = string(value)
+			} else {
+				end := bytes.IndexByte(d.content[d.offset:], '\000')
+				end += int(d.offset)
+				value := d.content[d.offset:end]
+				d.offset = uint32(end) + 1
+				ret[c] = string(value)
+			}
+		} else {
+
+		}
+	}
+	return ret
+}
+
+func (d *Dictionary) getEntryFieldSize(size uint32) []byte {
+	value := d.content[d.offset : d.offset+size]
+	d.offset += size
+
+	return value
 }

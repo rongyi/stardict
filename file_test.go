@@ -41,8 +41,10 @@ func TestDictionary(t *testing.T) {
 		t.Fatalf("%s\n", "NewIndex get nil Index")
 	}
 
-	_, err = NewDictionary(info, idx, "/tmp/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.dict.dz")
+	d, err := NewDictionary(info, idx, "/tmp/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.dict.dz")
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
+	values := d.GetWord("堆金积玉")
+	fmt.Println(values)
 }
