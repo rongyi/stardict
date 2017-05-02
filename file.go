@@ -221,7 +221,7 @@ func (d *Dictionary) getWordNonSameSequence(word Word) map[uint8][]byte {
 		// pass type byte
 		d.offset++
 
-		if strings.Index("mlgtxykwhnr", string(c)) > 0 {
+		if strings.Index("mlgtxykwhnr", string(c)) >= 0 {
 			end := bytes.IndexByte(d.content[d.offset:], '\000')
 			end += int(d.offset)
 			value := d.content[d.offset:end]
@@ -249,7 +249,7 @@ func (d *Dictionary) getWordSameSequence(word Word) map[uint8][]byte {
 
 	startOffset := d.offset
 	for i, c := range []byte(sametypesequence) {
-		if strings.Index("mlgtxykwhnr", string(c)) > 0 {
+		if strings.Index("mlgtxykwhnr", string(c)) >= 0 {
 			// last one
 			if i == len(sametypesequence)-1 {
 				value := d.getEntryFieldSize(word.size - (d.offset - startOffset))
@@ -261,7 +261,7 @@ func (d *Dictionary) getWordSameSequence(word Word) map[uint8][]byte {
 				d.offset = uint32(end) + 1
 				ret[c] = value
 			}
-		} else if strings.Index("WP", string(c)) > 0 {
+		} else if strings.Index("WP", string(c)) >= 0 {
 			// last one
 			if i == len(sametypesequence)-1 {
 				ret[c] = d.getEntryFieldSize(word.size - (d.offset - startOffset))
@@ -275,7 +275,6 @@ func (d *Dictionary) getWordSameSequence(word Word) map[uint8][]byte {
 				value := d.getEntryFieldSize(s)
 				ret[c] = value
 			}
-
 		}
 	}
 	return ret

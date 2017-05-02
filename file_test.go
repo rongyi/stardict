@@ -18,7 +18,7 @@ func TestIndexNew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s\n", "NewIndex get nil Index")
 	}
-	for w, err := idx.NextWord(); err == nil ; w, err = idx.NextWord() {
+	for w, err := idx.NextWord(); err == nil; w, err = idx.NextWord() {
 		fmt.Println(w)
 	}
 	fmt.Println(len(idx.wordDict))
@@ -48,4 +48,28 @@ func TestDictionary(t *testing.T) {
 	}
 	values := d.GetWord("堆金积玉")
 	fmt.Println(values)
+}
+
+func TestNonSequenceDictionary(t *testing.T) {
+	info := NewInfo("/tmp/stardict-xdict-ec-gb-2.4.2/xdict-ec-gb.ifo")
+	if info == nil {
+		t.Fatalf("%s\n", "NewInfo fail")
+	}
+	idx, err := NewIndex("/tmp/stardict-xdict-ec-gb-2.4.2/xdict-ec-gb.idx")
+	if err != nil {
+		t.Fatalf("%s\n", "NewIndex get nil Index")
+	}
+	idx.Parse()
+
+	d, err := NewDictionary(info, idx, "/tmp/stardict-xdict-ec-gb-2.4.2/xdict-ec-gb.dict.dz")
+	if err != nil {
+		t.Fatalf("%s\n", "fail to create new dictionary")
+	}
+	values := d.GetWord("Network Connections")
+	if len(values) != 1 {
+		t.Fatalf("%s\n", "get nothing")
+	}
+	if string(values[0][109]) != "网络连接" {
+		t.Fatalf("%s\n", "meaning errror")
+	}
 }
