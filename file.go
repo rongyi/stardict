@@ -148,5 +148,5 @@ func (idx *Index) NextWord() (string, error) {
 	idx.wordLst = append(idx.wordLst, newWord)
 	idx.wordDict[wordStr] = append(idx.wordDict[wordStr], newWord)
 
-	return "", nil
+	return wordStr, nil
 }
