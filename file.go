@@ -189,30 +189,66 @@ func (d *Dictionary) IsSameTypeSequence() bool {
 	return ok
 }
 
-func (d *Dictionary) GetWord(word string) []map[rune][]byte {
+func (d *Dictionary) GetWord(word string) []map[uint8][]byte {
 	index, ok := d.index.wordDict[word]
 	if !ok {
 		return nil
 	}
-	var ret []map[rune][]byte
+	var ret []map[uint8][]byte
 	for _, curWord := range index {
+		d.offset = curWord.offset
 		if d.IsSameTypeSequence() {
 			// set offset to this word meaning
-			d.offset = curWord.offset
 			curValue := d.getWordSameSequence(curWord)
 			ret = append(ret, curValue)
+		} else {
+			curValue := d.getWordNonSameSequence(curWord)
+			ret = append(ret, curValue)
 		}
-		// TODO
 	}
 	return ret
 }
 
-func (d *Dictionary) getWordSameSequence(word Word) map[rune][]byte {
-	ret := make(map[rune][]byte)
+func (d *Dictionary) getWordNonSameSequence(word Word) map[uint8][]byte {
+	ret := make(map[uint8][]byte)
+	var readSize uint32
+	startOffset := d.offset
+	for readSize < word.size {
+		typeByte := d.content[d.offset : d.offset+1]
+		r := bytes.NewReader(typeByte)
+		var c uint8
+		binary.Read(r, binary.BigEndian, &c)
+		// pass type byte
+		d.offset++
+
+		if strings.Index("mlgtxykwhnr", string(c)) > 0 {
+			end := bytes.IndexByte(d.content[d.offset:], '\000')
+			end += int(d.offset)
+			value := d.content[d.offset:end]
+			d.offset = uint32(end) + 1
+			ret[c] = value
+		} else {
+			sizeByte := d.content[d.offset : d.offset+4]
+			r := bytes.NewReader(sizeByte)
+			var s uint32
+			binary.Read(r, binary.BigEndian, &s)
+			d.offset += 4
+
+			value := d.getEntryFieldSize(s)
+			ret[c] = value
+		}
+		readSize = d.offset - startOffset
+	}
+
+	return ret
+}
+
+func (d *Dictionary) getWordSameSequence(word Word) map[uint8][]byte {
+	ret := make(map[uint8][]byte)
 	sametypesequence := d.info.Dict["sametypesequence"]
 
 	startOffset := d.offset
-	for i, c := range sametypesequence {
+	for i, c := range []byte(sametypesequence) {
 		if strings.Index("mlgtxykwhnr", string(c)) > 0 {
 			// last one
 			if i == len(sametypesequence)-1 {
@@ -236,7 +272,8 @@ func (d *Dictionary) getWordSameSequence(word Word) map[rune][]byte {
 				binary.Read(r, binary.BigEndian, &s)
 				d.offset += 4
 
-				d.getEntryFieldSize(s)
+				value := d.getEntryFieldSize(s)
+				ret[c] = value
 			}
 
 		}
