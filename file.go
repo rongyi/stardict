@@ -154,7 +154,7 @@ func (idx *Index) NextWord() (string, error) {
 }
 
 func (idx *Index) Parse() {
-	for _, err := idx.NextWord(); err == nil ; _, err = idx.NextWord() {
+	for _, err := idx.NextWord(); err == nil; _, err = idx.NextWord() {
 	}
 }
 
@@ -189,12 +189,12 @@ func (d *Dictionary) IsSameTypeSequence() bool {
 	return ok
 }
 
-func (d *Dictionary) GetWord(word string) []map[rune]string {
+func (d *Dictionary) GetWord(word string) []map[rune][]byte {
 	index, ok := d.index.wordDict[word]
 	if !ok {
 		return nil
 	}
-	var ret []map[rune]string
+	var ret []map[rune][]byte
 	for _, curWord := range index {
 		if d.IsSameTypeSequence() {
 			// set offset to this word meaning
@@ -207,8 +207,8 @@ func (d *Dictionary) GetWord(word string) []map[rune]string {
 	return ret
 }
 
-func (d *Dictionary) getWordSameSequence(word Word) map[rune]string {
-	ret := make(map[rune]string)
+func (d *Dictionary) getWordSameSequence(word Word) map[rune][]byte {
+	ret := make(map[rune][]byte)
 	sametypesequence := d.info.Dict["sametypesequence"]
 
 	startOffset := d.offset
@@ -217,15 +217,27 @@ func (d *Dictionary) getWordSameSequence(word Word) map[rune]string {
 			// last one
 			if i == len(sametypesequence)-1 {
 				value := d.getEntryFieldSize(word.size - (d.offset - startOffset))
-				ret[c] = string(value)
+				ret[c] = value
 			} else {
 				end := bytes.IndexByte(d.content[d.offset:], '\000')
 				end += int(d.offset)
 				value := d.content[d.offset:end]
 				d.offset = uint32(end) + 1
-				ret[c] = string(value)
+				ret[c] = value
 			}
-		} else {
+		} else if strings.Index("WP", string(c)) > 0 {
+			// last one
+			if i == len(sametypesequence)-1 {
+				ret[c] = d.getEntryFieldSize(word.size - (d.offset - startOffset))
+			} else {
+				sizeByte := d.content[d.offset : d.offset+4]
+				r := bytes.NewReader(sizeByte)
+				var s uint32
+				binary.Read(r, binary.BigEndian, &s)
+				d.offset += 4
+
+				d.getEntryFieldSize(s)
+			}
 
 		}
 	}
