@@ -1,7 +1,8 @@
 package stardict
+
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestFileNew(t *testing.T) {
@@ -9,5 +10,15 @@ func TestFileNew(t *testing.T) {
 	if i == nil {
 		t.Fatalf("%s\n", "NewInfo fail")
 	}
-	fmt.Println(i)
+	// fmt.Println(i)
+}
+
+func TestIndexNew(t *testing.T) {
+	idx, err := NewIndex("/tmp/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.idx")
+	if err != nil {
+		t.Fatalf("%s\n", "NewIndex get nil Index")
+	}
+	for w, err := idx.NextWord(); err == nil ; w, err = idx.NextWord() {
+		fmt.Println(w)
+	}
 }
