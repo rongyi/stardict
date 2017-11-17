@@ -1,4 +1,14 @@
 * about
   stardict go版本parser
 
-  WIP!!
+  协议格式[fn:1]，这里[fn:2]也有简单的解释。总之还是蛮简单的。
+
+  词库下载[fn:3]
+
+* Footnotes
+
+[fn:1] https://github.com/huzheng001/stardict-3/blob/master/dict/doc/StarDictFileFormat
+
+[fn:2] http://dhyannataraj.github.io/blog/2010/10/04/Notes-about-stardict-dictionry-format/
+
+[fn:3] http://kdr2.com/resource/stardict.html
