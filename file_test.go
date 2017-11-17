@@ -18,9 +18,9 @@ func TestIndexNew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s\n", "NewIndex get nil Index")
 	}
-	for w, err := idx.NextWord(); err == nil; w, err = idx.NextWord() {
-		fmt.Println(w)
-	}
+	// for w, err := idx.NextWord(); err == nil; w, err = idx.NextWord() {
+	// 	fmt.Println(w)
+	// }
 	fmt.Println(len(idx.wordDict))
 	fmt.Println(len(idx.wordLst))
 	// input := "堆金积玉"
@@ -47,7 +47,12 @@ func TestDictionary(t *testing.T) {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
 	values := d.GetWord("堆金积玉")
-	fmt.Println(values)
+	for _, v := range values {
+		for k, m := range v {
+			fmt.Println(k)
+			fmt.Println(string(m))
+		}
+	}
 }
 
 func TestNonSequenceDictionary(t *testing.T) {
