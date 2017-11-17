@@ -43,7 +43,7 @@ func NewInfo(dirname string) *Info {
 		if l == "" {
 			continue
 		}
-		secs := strings.Split(l, "=")
+		secs := strings.SplitN(l, "=", 2)
 		if len(secs) != 2 {
 			return nil
 		}
@@ -65,13 +65,15 @@ func (i *Info) String() string {
 	return strings.Join(ret, "\n")
 }
 
+// Word represent the dictionary unit: word
 type Word struct {
-	w      string // the word
-	offset uint32 // start position
-	size   uint32 // size
+	w      string // the word to be searched
+	offset uint32 // start position at dic file
+	size   uint32 // len
 	index  uint32 // index serial number
 }
 
+// Index reprent the idx file
 type Index struct {
 	content   []byte
 	offset    int
@@ -81,12 +83,22 @@ type Index struct {
 	wordLst   []Word
 }
 
+// NewIndex create a new Index with idx file
 func NewIndex(filename string) (*Index, error) {
 	c, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
+	// from doc:
+	// If the version is "3.0.0" and "idxoffsetbits=64", word_data_offset will
+	// be 64-bits unsigned number in network byte order. Otherwise it will be
+	// 32-bits.
+	// word_data_size should be 32-bits unsigned number in network byte order.
+
+	// The dictionary I downloaded is all version 2.4, so here the indexBits is
+	// hardcoded to 32, If you need to parse 3.0 or higher, read the documentation
+	// above, and rewrite.
 	idx := &Index{
 		content:   c,
 		offset:    0,
@@ -102,20 +114,24 @@ func (idx *Index) NextWord() (string, error) {
 	if idx.offset == len(idx.content) {
 		return "", errorEOF
 	}
+	// In order to make StarDict work on different platforms, these numbers
+	// must be in network byte order.
+
 	// format:
 	// word_str;  // a utf-8 string terminated by '\0'.
 	// word_data_offset;  // word data's offset in .dict file
 	// word_data_size;  // word data's total size in .dict file
 	end := bytes.IndexByte(idx.content[idx.offset:], '\000')
 	end += idx.offset
+	// 1. word_str;  // a utf-8 string terminated by '\0'.
 	wordStr := string(idx.content[idx.offset:end])
-	// fmt.Println(wordStr)
 
 	newWord := Word{
 		w: wordStr,
 	}
 
 	idx.offset = end + 1
+	// 2. word_data_offset;  // word data's offset in .dict file
 	if idx.indexBits == 64 {
 		var wOffset uint64
 		offByte := idx.content[idx.offset : idx.offset+8]
@@ -129,16 +145,17 @@ func (idx *Index) NextWord() (string, error) {
 		r := bytes.NewReader(offByte)
 		binary.Read(r, binary.BigEndian, &wOffset)
 		idx.offset += 4
-		// fmt.Printf("offset reading: %d\n", wOffset)
 		newWord.offset = wOffset
 	} else {
 		return "", errorBits
 	}
+
+	// word_data_size;  // word data's total size in .dict file
+	// word_data_size should be 32-bits unsigned number in network byte order.
 	var wSize uint32
 	sizeByte := idx.content[idx.offset : idx.offset+4]
 	r := bytes.NewReader(sizeByte)
 	binary.Read(r, binary.BigEndian, &wSize)
-	// fmt.Printf("size reading: %d\n", wSize)
 	newWord.size = wSize
 
 	idx.offset += 4
@@ -237,6 +254,7 @@ func (d *Dictionary) getWordNonSameSequence(word Word) map[uint8][]byte {
 			value := d.getEntryFieldSize(s)
 			ret[c] = value
 		}
+
 		readSize = d.offset - startOffset
 	}
 
@@ -250,6 +268,12 @@ func (d *Dictionary) getWordSameSequence(word Word) map[uint8][]byte {
 	startOffset := d.offset
 	for i, c := range []byte(sametypesequence) {
 		if strings.Index("mlgtxykwhnr", string(c)) >= 0 {
+			// The first data entry for each word will have a terminating '\0', but
+			// the second entry will not have a terminating '\0'.  The omissions of
+			// the type chars and of the last field's size information are the
+			// optimizations required by the "sametypesequence" option described
+			// above.
+
 			// last one
 			if i == len(sametypesequence)-1 {
 				value := d.getEntryFieldSize(word.size - (d.offset - startOffset))
@@ -262,6 +286,9 @@ func (d *Dictionary) getWordSameSequence(word Word) map[uint8][]byte {
 				ret[c] = value
 			}
 		} else if strings.Index("WP", string(c)) >= 0 {
+			// The data begins with a network byte-ordered guint32 to identify the wav
+			// file's size, immediately followed by the file's content.
+
 			// last one
 			if i == len(sametypesequence)-1 {
 				ret[c] = d.getEntryFieldSize(word.size - (d.offset - startOffset))
