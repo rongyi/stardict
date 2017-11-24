@@ -23,20 +23,20 @@ type Info struct {
 	Dict    map[string]string
 }
 
-// NewInfo create a new Info struct
-func NewInfo(dirname string) *Info {
+// on fail return nil
+func newInfo(dirname string) (*Info, error) {
 	i := &Info{
 		File: dirname,
 	}
 	c, err := ioutil.ReadFile(i.File)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	i.Content = string(c)
 	lines := strings.Split(i.Content, "\n")
 	i.Dict = make(map[string]string)
 	if len(lines) < 1 {
-		return nil
+		return nil, errors.New("content empty")
 	}
 	i.Dict["header"] = lines[0]
 	for _, l := range lines[1:] {
@@ -45,14 +45,14 @@ func NewInfo(dirname string) *Info {
 		}
 		secs := strings.SplitN(l, "=", 2)
 		if len(secs) != 2 {
-			return nil
+			return nil, errors.New("key value pair fail")
 		}
 		key := strings.Trim(secs[0], "\n ")
 		value := strings.Trim(secs[1], "\n ")
 		i.Dict[key] = value
 	}
 
-	return i
+	return i, nil
 }
 
 func (i *Info) String() string {
@@ -81,10 +81,11 @@ type Index struct {
 	indexBits uint32
 	wordDict  map[string][]Word
 	wordLst   []Word
+	parsed    bool
 }
 
-// NewIndex create a new Index with idx file
-func NewIndex(filename string) (*Index, error) {
+// newIndex create a new Index with idx file
+func newIndex(filename string) (*Index, error) {
 	c, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -106,11 +107,12 @@ func NewIndex(filename string) (*Index, error) {
 		indexBits: 32,
 		wordDict:  make(map[string][]Word),
 	}
+	idx.parse()
 
 	return idx, nil
 }
 
-func (idx *Index) NextWord() (string, error) {
+func (idx *Index) nextWord() (string, error) {
 	if idx.offset == len(idx.content) {
 		return "", errorEOF
 	}
@@ -170,9 +172,14 @@ func (idx *Index) NextWord() (string, error) {
 	return wordStr, nil
 }
 
-func (idx *Index) Parse() {
-	for _, err := idx.NextWord(); err == nil; _, err = idx.NextWord() {
+func (idx *Index) parse() {
+	if idx.parsed {
+		return
 	}
+
+	for _, err := idx.nextWord(); err == nil; _, err = idx.nextWord() {
+	}
+	idx.parsed = true
 }
 
 type Dictionary struct {
@@ -182,13 +189,22 @@ type Dictionary struct {
 	offset  uint32
 }
 
-func NewDictionary(i *Info, idx *Index, filename string) (*Dictionary, error) {
+func NewDictionary(ifo, idx, dict string) (*Dictionary, error) {
+	info, err := newInfo(ifo)
+	if err != nil {
+		return nil, err
+	}
+	index, err := newIndex(idx)
+	if err != nil {
+		return nil, err
+	}
+
 	d := &Dictionary{
-		info:   i,
-		index:  idx,
+		info:   info,
+		index:  index,
 		offset: 0,
 	}
-	raw, err := ioutil.ReadFile(filename)
+	raw, err := ioutil.ReadFile(dict)
 	if err != nil {
 		return nil, errorRead
 	}
@@ -201,11 +217,12 @@ func NewDictionary(i *Info, idx *Index, filename string) (*Dictionary, error) {
 	return d, nil
 }
 
-func (d *Dictionary) IsSameTypeSequence() bool {
+func (d *Dictionary) isSameTypeSequence() bool {
 	_, ok := d.info.Dict["sametypesequence"]
 	return ok
 }
 
+// GetWord get the meaning of word
 func (d *Dictionary) GetWord(word string) []map[uint8][]byte {
 	index, ok := d.index.wordDict[word]
 	if !ok {
@@ -214,7 +231,7 @@ func (d *Dictionary) GetWord(word string) []map[uint8][]byte {
 	var ret []map[uint8][]byte
 	for _, curWord := range index {
 		d.offset = curWord.offset
-		if d.IsSameTypeSequence() {
+		if d.isSameTypeSequence() {
 			// set offset to this word meaning
 			curValue := d.getWordSameSequence(curWord)
 			ret = append(ret, curValue)
