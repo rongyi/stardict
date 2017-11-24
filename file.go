@@ -243,6 +243,27 @@ func (d *Dictionary) GetWord(word string) []map[uint8][]byte {
 	return ret
 }
 
+func (d *Dictionary) GetFormatedMeaning(word string) []string {
+	ret := []string{}
+	ms := d.GetWord(word)
+	for _, m := range ms {
+		for k, v := range m {
+			if k == byte('h') {
+				txt, err := Unhtml(v)
+				if err != nil {
+					continue
+				}
+				lines := strings.Split(txt, "\n")
+				ret = append(ret, lines...)
+			} else {
+				lines := strings.Split(string(v), "\n")
+				ret = append(ret, lines...)
+			}
+		}
+	}
+	return ret
+}
+
 func (d *Dictionary) getWordNonSameSequence(word Word) map[uint8][]byte {
 	ret := make(map[uint8][]byte)
 	var readSize uint32

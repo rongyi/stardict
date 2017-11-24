@@ -10,6 +10,7 @@ var (
 	}
 )
 
+// Unhtml strip html tag to basic txt
 func Unhtml(raw []byte) (string, error) {
 	r := string(raw)
 	return html2text.FromString(r, *option)

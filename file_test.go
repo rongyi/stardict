@@ -36,6 +36,10 @@ func TestDictionary(t *testing.T) {
 			fmt.Println(string(m))
 		}
 	}
+	vs := d.GetFormatedMeaning("堆金积玉")
+	for _, v := range vs {
+		fmt.Println(v)
+	}
 }
 
 func TestNonSequenceDictionary(t *testing.T) {
