@@ -6,43 +6,33 @@ import (
 )
 
 func TestFileNew(t *testing.T) {
-	i := NewInfo("/tmp/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.ifo")
+	i := NewInfo("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.ifo")
 	if i == nil {
 		t.Fatalf("%s\n", "NewInfo fail")
 	}
-	// fmt.Println(i)
 }
 
 func TestIndexNew(t *testing.T) {
-	idx, err := NewIndex("/tmp/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.idx")
+	idx, err := NewIndex("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.idx")
 	if err != nil {
 		t.Fatalf("%s\n", "NewIndex get nil Index")
 	}
-	// for w, err := idx.NextWord(); err == nil; w, err = idx.NextWord() {
-	// 	fmt.Println(w)
-	// }
 	fmt.Println(len(idx.wordDict))
 	fmt.Println(len(idx.wordLst))
-	// input := "堆金积玉"
-	// w, ok := idx.wordDict[input]
-	// if !ok {
-	// 	t.Fatalf("%s\n", "fail to get word: 堆金积玉")
-	// }
-	// fmt.Println(w)
 }
 
 func TestDictionary(t *testing.T) {
-	info := NewInfo("/tmp/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.ifo")
+	info := NewInfo("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.ifo")
 	if info == nil {
 		t.Fatalf("%s\n", "NewInfo fail")
 	}
-	idx, err := NewIndex("/tmp/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.idx")
+	idx, err := NewIndex("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.idx")
 	if err != nil {
 		t.Fatalf("%s\n", "NewIndex get nil Index")
 	}
 	idx.Parse()
 
-	d, err := NewDictionary(info, idx, "/tmp/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.dict.dz")
+	d, err := NewDictionary(info, idx, "./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.dict.dz")
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
@@ -56,25 +46,27 @@ func TestDictionary(t *testing.T) {
 }
 
 func TestNonSequenceDictionary(t *testing.T) {
-	info := NewInfo("/tmp/stardict-xdict-ec-gb-2.4.2/xdict-ec-gb.ifo")
+	info := NewInfo("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.ifo")
 	if info == nil {
 		t.Fatalf("%s\n", "NewInfo fail")
 	}
-	idx, err := NewIndex("/tmp/stardict-xdict-ec-gb-2.4.2/xdict-ec-gb.idx")
+	idx, err := NewIndex("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.idx")
 	if err != nil {
 		t.Fatalf("%s\n", "NewIndex get nil Index")
 	}
 	idx.Parse()
 
-	d, err := NewDictionary(info, idx, "/tmp/stardict-xdict-ec-gb-2.4.2/xdict-ec-gb.dict.dz")
+	d, err := NewDictionary(info, idx, "./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.dict.dz")
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
-	values := d.GetWord("Network Connections")
-	if len(values) != 1 {
-		t.Fatalf("%s\n", "get nothing")
+	values := d.GetWord("mail")
+	if len(values) == 0 {
+		t.Fatal("simple mail word not found, parse fail")
 	}
-	if string(values[0][109]) != "网络连接" {
-		t.Fatalf("%s\n", "meaning errror")
+	for _, v := range values {
+		for _, m := range v {
+			fmt.Println(string(m))
+		}
 	}
 }
