@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"io"
 )
 
 var (
@@ -24,21 +25,32 @@ type Info struct {
 }
 
 // on fail return nil
-func newInfo(dirname string) (*Info, error) {
+func newInfo(ir io.Reader) (*Info, error) {
 	i := &Info{
-		File: dirname,
+		// File: dirname,
 	}
-	c, err := ioutil.ReadFile(i.File)
+	c, err := ioutil.ReadAll(ir)
 	if err != nil {
 		return nil, err
 	}
 	i.Content = string(c)
-	lines := strings.Split(i.Content, "\n")
-	i.Dict = make(map[string]string)
+	d, err := parseInfo(i.Content)
+	if err != nil {
+		return nil, err
+	}
+	i.Dict = d
+
+	return i, nil
+}
+
+func parseInfo(content string) (map[string]string, error) {
+	lines := strings.Split(content, "\n")
 	if len(lines) < 1 {
 		return nil, errors.New("content empty")
 	}
-	i.Dict["header"] = lines[0]
+
+	ret := make(map[string]string)
+	ret["header"] = lines[0]
 	for _, l := range lines[1:] {
 		if l == "" {
 			continue
@@ -49,10 +61,9 @@ func newInfo(dirname string) (*Info, error) {
 		}
 		key := strings.Trim(secs[0], "\n ")
 		value := strings.Trim(secs[1], "\n ")
-		i.Dict[key] = value
+		ret[key] = value
 	}
-
-	return i, nil
+	return ret, nil
 }
 
 func (i *Info) String() string {
@@ -85,8 +96,8 @@ type Index struct {
 }
 
 // newIndex create a new Index with idx file
-func newIndex(filename string) (*Index, error) {
-	c, err := ioutil.ReadFile(filename)
+func newIndex(ir io.Reader) (*Index, error) {
+	c, err := ioutil.ReadAll(ir)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +122,7 @@ func newIndex(filename string) (*Index, error) {
 
 	return idx, nil
 }
+
 
 func (idx *Index) nextWord() (string, error) {
 	if idx.offset == len(idx.content) {
@@ -189,7 +201,7 @@ type Dictionary struct {
 	offset  uint32
 }
 
-func NewDictionary(ifo, idx, dict string) (*Dictionary, error) {
+func NewDictionary(ifo, idx, dict io.Reader) (*Dictionary, error) {
 	info, err := newInfo(ifo)
 	if err != nil {
 		return nil, err
@@ -204,7 +216,7 @@ func NewDictionary(ifo, idx, dict string) (*Dictionary, error) {
 		index:  index,
 		offset: 0,
 	}
-	raw, err := ioutil.ReadFile(dict)
+	raw, err := ioutil.ReadAll(dict)
 	if err != nil {
 		return nil, errorRead
 	}

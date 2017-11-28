@@ -3,17 +3,28 @@ package stardict
 import (
 	"fmt"
 	"testing"
+	"os"
 )
 
 func TestFileNew(t *testing.T) {
-	_, err := newInfo("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.ifo")
+	f, err := os.Open("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.ifo")
+	if err != nil {
+		t.Fatalf("%s\n", "newInfo fail")
+	}
+	defer f.Close()
+	_, err = newInfo(f)
 	if err != nil {
 		t.Fatalf("%s\n", "newInfo fail")
 	}
 }
 
 func TestIndexNew(t *testing.T) {
-	idx, err := newIndex("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.idx")
+	f, err := os.Open("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.idx")
+	if err != nil {
+		t.Fatalf("%s\n", "newIndex get nil Index")
+	}
+	defer f.Close()
+	idx, err := newIndex(f)
 	if err != nil {
 		t.Fatalf("%s\n", "newIndex get nil Index")
 	}
@@ -22,10 +33,22 @@ func TestIndexNew(t *testing.T) {
 }
 
 func TestDictionary(t *testing.T) {
-
-	d, err := NewDictionary("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.ifo",
-		"./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.idx",
-		"./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.dict.dz")
+	f1, err := os.Open("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.ifo")
+	if err != nil {
+		t.Fatalf("%s\n", "fail to create new dictionary")
+	}
+	defer f1.Close()
+	f2, err := os.Open("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.idx")
+	if err != nil {
+		t.Fatalf("%s\n", "fail to create new dictionary")
+	}
+	defer f2.Close()
+	f3, err := os.Open("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.dict.dz")
+	if err != nil {
+		t.Fatalf("%s\n", "fail to create new dictionary")
+	}
+	defer f3.Close()
+	d, err := NewDictionary(f1, f2, f3)
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
@@ -43,9 +66,25 @@ func TestDictionary(t *testing.T) {
 }
 
 func TestNonSequenceDictionary(t *testing.T) {
-	d, err := NewDictionary("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.ifo",
-		"./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.idx",
-		"./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.dict.dz")
+	f1, err := os.Open("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.ifo")
+	if err != nil {
+		t.Fatalf("%s\n", "fail to create new dictionary")
+	}
+	defer f1.Close()
+
+	f2, err := os.Open("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.idx")
+	if err != nil {
+		t.Fatalf("%s\n", "fail to create new dictionary")
+	}
+	defer f2.Close()
+
+	f3, err := os.Open("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.dict.dz")
+	if err != nil {
+		t.Fatalf("%s\n", "fail to create new dictionary")
+	}
+	defer f3.Close()
+
+	d, err := NewDictionary(f1, f2, f3)
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}

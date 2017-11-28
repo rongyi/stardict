@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/nsf/termbox-go"
 	"strings"
+	"io"
 )
 
 const (
@@ -20,7 +21,7 @@ type Engine struct {
 	dict           *Dictionary
 }
 
-func NewEngine(ifo, idx, d string) (*Engine, error) {
+func NewEngine(ifo, idx, d io.Reader) (*Engine, error) {
 	var fflow []string
 	dict, err := NewDictionary(ifo, idx, d)
 	if err != nil {
