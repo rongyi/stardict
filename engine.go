@@ -3,8 +3,10 @@ package stardict
 import (
 	"fmt"
 	"github.com/nsf/termbox-go"
-	"strings"
 	"io"
+	"strings"
+	"os"
+	"bufio"
 )
 
 const (
@@ -19,11 +21,17 @@ type Engine struct {
 	contentOffset  int
 	input          []string
 	dict           *Dictionary
+	prevSave       string
+	saveFile       *os.File
 }
 
 func NewEngine(ifo, idx, d io.Reader) (*Engine, error) {
 	var fflow []string
 	dict, err := NewDictionary(ifo, idx, d)
+	if err != nil {
+		return nil, err
+	}
+	saveFD, err := OpenFile()
 	if err != nil {
 		return nil, err
 	}
@@ -35,6 +43,7 @@ func NewEngine(ifo, idx, d io.Reader) (*Engine, error) {
 		contentOffset:  0,
 		input:          fflow,
 		dict:           dict,
+		saveFile:       saveFD,
 	}
 	e.queryCursorIdx = e.query.Length()
 
@@ -104,6 +113,7 @@ func (e *Engine) Run() []string {
 		panic(err)
 	}
 	defer termbox.Close()
+	defer e.saveFile.Close()
 
 	var contents []string
 mainloop:
@@ -148,6 +158,8 @@ mainloop:
 				e.scrollToBottom(len(contents))
 			case termbox.KeyCtrlT:
 				e.scrollToTop()
+			case termbox.KeyCtrlS:
+				e.save()
 			case termbox.KeyCtrlC, termbox.KeyEnter:
 				break mainloop
 			}
@@ -166,4 +178,30 @@ func (e *Engine) RunWithOutput() int {
 	}
 
 	return 0
+}
+
+func (e *Engine) save() {
+	word := e.query.StringGet()
+	// duplicate save
+	if word == e.prevSave {
+		return
+	}
+	if e.prevSave == "" && word != "" {
+		e.prevSave = word
+	}
+	meaning := e.dict.GetFormatedMeaning(word)
+	if word != "" && len(meaning) != 0 {
+		content := word + "\n" + strings.Join(meaning, "\n")
+		e.dump(content)
+	}
+}
+
+func (e *Engine) dump(s string) error {
+	io := bufio.NewWriter(e.saveFile)
+	io.Write(sep)
+	io.WriteByte('\n')
+	io.WriteString(s)
+	io.WriteByte('\n')
+	io.Flush()
+	return nil
 }
