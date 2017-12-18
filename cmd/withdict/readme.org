@@ -6,6 +6,7 @@ go get -v github.com/jteeuwen/go-bindata/...
 cd /tmp
 wget -c http://depot.kdr2.com/resource/stardict/stardict-langdao-ec-gb-2.4.2.tar.bz2
 tar xvf /tmp/stardict-langdao-ec-gb-2.4.2.tar.bz2 -C /tmp
-go-bindata -o $GOPATH/src/github.com/rongyi/stardict/cmd/withdict/data.go /tmp/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.dict.dz /tmp/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.idx /tmp/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.ifo
+cd /tmp/stardict-langdao-ec-gb-2.4.2
+go-bindata -o $GOPATH/src/github.com/rongyi/stardict/cmd/withdict/data.go langdao-ec-gb.dict.dz langdao-ec-gb.idx langdao-ec-gb.ifo
 
 #+END_SRC
