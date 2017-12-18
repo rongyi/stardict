@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"log"
-	"stardict"
+	"github.com/rongyi/stardict"
 )
 
 func main() {
