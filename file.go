@@ -5,9 +5,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"strings"
 	"io"
+	"io/ioutil"
+	"log"
+	"strings"
+	"sync"
 )
 
 var (
@@ -27,7 +29,7 @@ type Info struct {
 // on fail return nil
 func newInfo(ir io.Reader) (*Info, error) {
 	i := &Info{
-		// File: dirname,
+	// File: dirname,
 	}
 	c, err := ioutil.ReadAll(ir)
 	if err != nil {
@@ -123,7 +125,6 @@ func newIndex(ir io.Reader) (*Index, error) {
 	return idx, nil
 }
 
-
 func (idx *Index) nextWord() (string, error) {
 	if idx.offset == len(idx.content) {
 		return "", errorEOF
@@ -201,31 +202,60 @@ type Dictionary struct {
 	offset  uint32
 }
 
-func NewDictionary(ifo, idx, dict io.Reader) (*Dictionary, error) {
-	info, err := newInfo(ifo)
-	if err != nil {
-		return nil, err
-	}
-	index, err := newIndex(idx)
-	if err != nil {
-		return nil, err
-	}
+func mkchan(ifo, idx, dict io.Reader, d *Dictionary) <-chan error {
+	ret := make(chan error, 3)
+	defer close(ret)
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		info, err := newInfo(ifo)
+		if err != nil {
+			ret <- err
+			return
+		}
+		d.info = info
+	}()
 
+	go func() {
+		defer wg.Done()
+		index, err := newIndex(idx)
+		if err != nil {
+			ret <- err
+			return
+		}
+		d.index = index
+	}()
+
+	go func() {
+		defer wg.Done()
+		raw, err := ioutil.ReadAll(dict)
+		if err != nil {
+			ret <- err
+			return
+		}
+		content, err := Gunzip(raw)
+		if err != nil {
+			ret <- err
+			return
+		}
+		d.content = content
+	}()
+
+	wg.Wait()
+
+	return ret
+}
+
+func NewDictionary(ifo, idx, dict io.Reader) (*Dictionary, error) {
 	d := &Dictionary{
-		info:   info,
-		index:  index,
 		offset: 0,
 	}
-	raw, err := ioutil.ReadAll(dict)
-	if err != nil {
-		return nil, errorRead
+	for err := range mkchan(ifo, idx, dict, d) {
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	content, err := Gunzip(raw)
-	if err != nil {
-		return nil, errorGzip
-	}
-	d.content = content
-
 	return d, nil
 }
 

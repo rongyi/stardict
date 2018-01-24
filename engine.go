@@ -160,7 +160,7 @@ mainloop:
 				e.scrollToTop()
 			case termbox.KeyCtrlS:
 				e.save()
-			case termbox.KeyCtrlC, termbox.KeyEnter:
+			case termbox.KeyCtrlC:
 				break mainloop
 			}
 		case termbox.EventError:
