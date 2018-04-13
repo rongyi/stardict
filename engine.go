@@ -1,12 +1,13 @@
 package stardict
 
 import (
-	"fmt"
-	"github.com/nsf/termbox-go"
-	"io"
-	"strings"
-	"os"
 	"bufio"
+	"fmt"
+	"io"
+	"os"
+	"strings"
+
+	"github.com/nsf/termbox-go"
 )
 
 const (
@@ -57,6 +58,13 @@ func (e *Engine) inputChar(ch rune) {
 
 func (e *Engine) deleteChar() {
 	if i := e.queryCursorIdx - 1; i >= 0 {
+		_ = e.query.Delete(i)
+		e.queryCursorIdx--
+	}
+}
+
+func (e *Engine) clearChar() {
+	for i := e.queryCursorIdx - 1; i >= 0; i-- {
 		_ = e.query.Delete(i)
 		e.queryCursorIdx--
 	}
@@ -142,6 +150,8 @@ mainloop:
 				e.inputChar(ev.Ch)
 			case termbox.KeyBackspace, termbox.KeyBackspace2:
 				e.deleteChar()
+			case termbox.KeyCtrlU:
+				e.clearChar()
 			case termbox.KeyArrowLeft, termbox.KeyCtrlB:
 				e.moveCursorBackward()
 			case termbox.KeyArrowRight, termbox.KeyCtrlF:
