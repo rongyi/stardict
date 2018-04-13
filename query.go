@@ -1,6 +1,7 @@
 package stardict
 import (
 	"github.com/mattn/go-runewidth"
+	"strings"
 )
 
 
@@ -30,7 +31,8 @@ func (q *Query) Length() int {
 }
 
 func (q *Query) StringGet() string {
-	return string(q.Get())
+	rawStr := string(q.Get())
+	return strings.ToLower(rawStr)
 }
 
 func (q *Query) IndexOffset(i int) int {
