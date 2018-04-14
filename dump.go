@@ -7,7 +7,7 @@ import (
 
 var (
 	file = ".startdict.txt"
-	sep = []byte("========")
+	sep  = []byte("========")
 )
 
 func OpenFile() (*os.File, error) {

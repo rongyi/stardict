@@ -1,7 +1,8 @@
 package stardict
+
 import (
-	"compress/gzip"
 	"bytes"
+	"compress/gzip"
 	"io/ioutil"
 )
 

@@ -1,17 +1,17 @@
 package stardict
-import (
-	"github.com/mattn/go-runewidth"
-	"strings"
-)
 
+import (
+	"strings"
+
+	"github.com/mattn/go-runewidth"
+)
 
 type Query struct {
 	query *[]rune
 }
 
 func NewQuery(query []rune) *Query {
-	q := &Query {
-	}
+	q := &Query{}
 	_ = q.Set(query)
 	return q
 }
@@ -56,7 +56,6 @@ func (q *Query) Insert(query []rune, idx int) []rune {
 	}
 	return q.Set(qq)
 }
-
 
 func (q *Query) Delete(i int) []rune {
 	var d []rune

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"log"
+
 	"github.com/rongyi/stardict"
 )
 
