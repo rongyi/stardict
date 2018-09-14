@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"log"
 
-	"github.com/rongyi/stardict"
+	"github.com/rongyi/stardict/pkg/tui"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 	r2 := bytes.NewReader(b)
 	r3 := bytes.NewReader(c)
 
-	engine, err := stardict.NewEngine(r1, r2, r3)
+	engine, err := tui.NewEngine(r1, r2, r3)
 	if err != nil {
 		log.Fatal(err)
 	}

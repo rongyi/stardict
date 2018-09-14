@@ -1,4 +1,4 @@
-package stardict
+package tui
 
 import (
 	"bufio"
