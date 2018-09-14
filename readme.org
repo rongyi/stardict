@@ -5,7 +5,7 @@
 
   词库下载[fn:3]
 * 截图
-[[./cmd/img/out.gif]]
+[[./img/out.gif]]
 * 自带朗道词典预编译版本
 + [[https://github.com/rongyi/stardict/releases/download/0.1/stardict-linux][Linux版本]]
 + [[https://github.com/rongyi/stardict/releases/download/0.1/stardict-mac][Mac版本]]
