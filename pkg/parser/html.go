@@ -1,4 +1,4 @@
-package stardict
+package parser
 
 import (
 	"github.com/jaytaylor/html2text"

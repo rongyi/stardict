@@ -1,4 +1,4 @@
-package stardict
+package dump
 
 import (
 	"os"

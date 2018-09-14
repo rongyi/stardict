@@ -1,4 +1,4 @@
-package stardict
+package parser
 
 import (
 	"bytes"
