@@ -122,8 +122,8 @@ func (e *Engine) Run() []string {
 	if err != nil {
 		panic(err)
 	}
+	defer e.close()
 	defer termbox.Close()
-	defer e.saveFile.Close()
 
 	var contents []string
 mainloop:
@@ -216,4 +216,9 @@ func (e *Engine) dump(s string) error {
 	io.WriteByte('\n')
 	io.Flush()
 	return nil
+}
+
+func (e *Engine) close() {
+	e.saveFile.Sync()
+	e.saveFile.Close()
 }
