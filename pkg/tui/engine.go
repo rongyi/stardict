@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/nsf/termbox-go"
+	"github.com/rongyi/stardict/pkg/dump"
+	"github.com/rongyi/stardict/pkg/parser"
 )
 
 const (
@@ -21,18 +23,18 @@ type Engine struct {
 	term           *Terminal
 	contentOffset  int
 	input          []string
-	dict           *Dictionary
+	dict           *parser.Dictionary
 	prevSave       string
 	saveFile       *os.File
 }
 
 func NewEngine(ifo, idx, d io.Reader) (*Engine, error) {
 	var fflow []string
-	dict, err := NewDictionary(ifo, idx, d)
+	dict, err := parser.NewDictionary(ifo, idx, d)
 	if err != nil {
 		return nil, err
 	}
-	saveFD, err := OpenFile()
+	saveFD, err := dump.OpenFile()
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +210,7 @@ func (e *Engine) save() {
 
 func (e *Engine) dump(s string) error {
 	io := bufio.NewWriter(e.saveFile)
-	io.Write(sep)
+	io.Write(dump.WordSeperator)
 	io.WriteByte('\n')
 	io.WriteString(s)
 	io.WriteByte('\n')

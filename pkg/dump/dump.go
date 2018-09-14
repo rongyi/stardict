@@ -7,7 +7,8 @@ import (
 
 var (
 	file = ".startdict.txt"
-	sep  = []byte("========")
+	// WordSeperator is a banner for words
+	WordSeperator = []byte("========")
 )
 
 func OpenFile() (*os.File, error) {
