@@ -1,12 +1,12 @@
 package parser
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
 	"io/ioutil"
-	"bufio"
 	"log"
 	"strings"
 	"sync"
@@ -91,6 +91,10 @@ func (i *Info) String() string {
 }
 
 // Word represent the dictionary unit: word
+// https://github.com/huzheng001/stardict-3/blob/master/dict/doc/StarDictFileFormat#L165
+// word_str;  // a utf-8 string terminated by '\0'.
+// word_data_offset;  // word data's offset in .dict file
+// word_data_size;  // word data's total size in .dict file
 type Word struct {
 	w      string // the word to be searched
 	offset uint32 // start position at dic file
@@ -104,10 +108,13 @@ type Index struct {
 	offset    int
 	index     uint32
 	indexBits uint32
-	wordDict  map[string][]Word
-	wordLst   []Word
-	parsed    bool
-	r         *bufio.Reader
+	// Two or more entries may have the same "word_str" with different
+	// word_data_offset and word_data_size. This may be useful for some
+	// dictionaries.
+	wordDict map[string][]Word
+	wordLst  []Word
+	parsed   bool
+	r        *bufio.Reader
 }
 
 // newIndex create a new Index with idx file
@@ -145,6 +152,7 @@ func (idx *Index) nextWord() (string, error) {
 	if idx.offset == len(idx.content) {
 		return "", errorEOF
 	}
+	prevOffset := idx.offset
 	// In order to make StarDict work on different platforms, these numbers
 	// must be in network byte order.
 
@@ -163,23 +171,24 @@ func (idx *Index) nextWord() (string, error) {
 
 	// jump over '\0'
 	idx.offset = end + 1
+	idx.r.Discard(idx.offset - prevOffset)
 	// 2. word_data_offset;  // word data's offset in .dict file
 	if idx.indexBits == 64 {
 		var wOffset uint64
 
-		offByte := idx.content[idx.offset : idx.offset+8]
+		// offByte := idx.content[idx.offset : idx.offset+8]
 
-		r := bytes.NewReader(offByte)
-		binary.Read(r, binary.BigEndian, &wOffset)
+		// r := bytes.NewReader(offByte)
+		binary.Read(idx.r, binary.BigEndian, &wOffset)
 
 		idx.offset += 8
 		newWord.offset = uint32(wOffset)
 	} else if idx.indexBits == 32 {
 		var wOffset uint32
 
-		offByte := idx.content[idx.offset : idx.offset+4]
-		r := bytes.NewReader(offByte)
-		binary.Read(r, binary.BigEndian, &wOffset)
+		// offByte := idx.content[idx.offset : idx.offset+4]
+		// r := bytes.NewReader(offByte)
+		binary.Read(idx.r, binary.BigEndian, &wOffset)
 
 		idx.offset += 4
 		newWord.offset = wOffset
@@ -190,9 +199,9 @@ func (idx *Index) nextWord() (string, error) {
 	// word_data_size;  // word data's total size in .dict file
 	// word_data_size should be 32-bits unsigned number in network byte order.
 	var wSize uint32
-	sizeByte := idx.content[idx.offset : idx.offset+4]
-	r := bytes.NewReader(sizeByte)
-	binary.Read(r, binary.BigEndian, &wSize)
+	// sizeByte := idx.content[idx.offset : idx.offset+4]
+	// r := bytes.NewReader(sizeByte)
+	binary.Read(idx.r, binary.BigEndian, &wSize)
 	newWord.size = wSize
 
 	idx.offset += 4
