@@ -2,12 +2,12 @@ package parser
 
 import (
 	"fmt"
-	"testing"
 	"os"
+	"testing"
 )
 
 func TestFileNew(t *testing.T) {
-	f, err := os.Open("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.ifo")
+	f, err := os.Open("./testdata/stardict-gaojihanyudacidian_fix-2.4.2/gaojihanyudacidian_fix.ifo")
 	if err != nil {
 		t.Fatalf("%s\n", "newInfo fail")
 	}
@@ -19,7 +19,7 @@ func TestFileNew(t *testing.T) {
 }
 
 func TestIndexNew(t *testing.T) {
-	f, err := os.Open("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.idx")
+	f, err := os.Open("./testdata/stardict-gaojihanyudacidian_fix-2.4.2/gaojihanyudacidian_fix.idx")
 	if err != nil {
 		t.Fatalf("%s\n", "newIndex get nil Index")
 	}
@@ -33,17 +33,17 @@ func TestIndexNew(t *testing.T) {
 }
 
 func TestDictionary(t *testing.T) {
-	f1, err := os.Open("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.ifo")
+	f1, err := os.Open("./testdata/stardict-gaojihanyudacidian_fix-2.4.2/gaojihanyudacidian_fix.ifo")
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
 	defer f1.Close()
-	f2, err := os.Open("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.idx")
+	f2, err := os.Open("./testdata/stardict-gaojihanyudacidian_fix-2.4.2/gaojihanyudacidian_fix.idx")
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
 	defer f2.Close()
-	f3, err := os.Open("./testdata/stardict-HanYuChengYuCiDian-new_colors-2.4.2/HanYuChengYuCiDian-new_colors.dict.dz")
+	f3, err := os.Open("./testdata/stardict-gaojihanyudacidian_fix-2.4.2/gaojihanyudacidian_fix.dict.dz")
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
@@ -52,17 +52,22 @@ func TestDictionary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
-	values := d.GetWord("堆金积玉")
-	for _, v := range values {
-		for k, m := range v {
-			fmt.Println(k)
-			fmt.Println(string(m))
+	fmt.Println(len(d.index.wordLst))
+	for _, w := range d.index.wordLst {
+		fmt.Println("====")
+		values := d.GetWord(w.w)
+		fmt.Println(w.w)
+		for _, v := range values {
+			for k, m := range v {
+				fmt.Println(string(k))
+				fmt.Println(string(m))
+			}
 		}
 	}
-	vs := d.GetFormatedMeaning("堆金积玉")
-	for _, v := range vs {
-		fmt.Println(v)
-	}
+	// vs := d.GetFormatedMeaning("堆金积玉")
+	// for _, v := range vs {
+	// 	fmt.Println(v)
+	// }
 }
 
 func TestNonSequenceDictionary(t *testing.T) {

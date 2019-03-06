@@ -21,16 +21,13 @@ var (
 
 // Info indicate the stardict ifo file
 type Info struct {
-	File    string
 	Content string
 	Dict    map[string]string
 }
 
 // on fail return nil
 func newInfo(ir io.Reader) (*Info, error) {
-	i := &Info{
-	// File: dirname,
-	}
+	i := &Info{}
 	c, err := ioutil.ReadAll(ir)
 	if err != nil {
 		return nil, err
