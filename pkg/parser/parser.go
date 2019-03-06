@@ -163,6 +163,7 @@ func (idx *Index) nextWord() (string, error) {
 	end := bytes.IndexByte(idx.content[idx.offset:], '\000')
 	end += idx.offset
 	// 1. word_str;  // a utf-8 string terminated by '\0'.
+	// we don't need this '\0'
 	wordStr := string(idx.content[idx.offset:end])
 
 	newWord := Word{
@@ -176,9 +177,6 @@ func (idx *Index) nextWord() (string, error) {
 	if idx.indexBits == 64 {
 		var wOffset uint64
 
-		// offByte := idx.content[idx.offset : idx.offset+8]
-
-		// r := bytes.NewReader(offByte)
 		binary.Read(idx.r, binary.BigEndian, &wOffset)
 
 		idx.offset += 8
@@ -186,8 +184,6 @@ func (idx *Index) nextWord() (string, error) {
 	} else if idx.indexBits == 32 {
 		var wOffset uint32
 
-		// offByte := idx.content[idx.offset : idx.offset+4]
-		// r := bytes.NewReader(offByte)
 		binary.Read(idx.r, binary.BigEndian, &wOffset)
 
 		idx.offset += 4
@@ -199,8 +195,6 @@ func (idx *Index) nextWord() (string, error) {
 	// word_data_size;  // word data's total size in .dict file
 	// word_data_size should be 32-bits unsigned number in network byte order.
 	var wSize uint32
-	// sizeByte := idx.content[idx.offset : idx.offset+4]
-	// r := bytes.NewReader(sizeByte)
 	binary.Read(idx.r, binary.BigEndian, &wSize)
 	newWord.size = wSize
 
