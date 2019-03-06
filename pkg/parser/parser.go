@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"bufio"
 	"log"
 	"strings"
 	"sync"
@@ -106,22 +107,25 @@ type Index struct {
 	wordDict  map[string][]Word
 	wordLst   []Word
 	parsed    bool
+	r         *bufio.Reader
 }
 
 // newIndex create a new Index with idx file
+// you can see index as slice of Word i.e. []Word
+// and word in slice is sorted
 func newIndex(ir io.Reader) (*Index, error) {
 	c, err := ioutil.ReadAll(ir)
 	if err != nil {
 		return nil, err
 	}
 
-	// from doc:
+	// from doc: https://github.com/huzheng001/stardict-3/blob/master/dict/doc/StarDictFileFormat#L181
 	// If the version is "3.0.0" and "idxoffsetbits=64", word_data_offset will
 	// be 64-bits unsigned number in network byte order. Otherwise it will be
 	// 32-bits.
 	// word_data_size should be 32-bits unsigned number in network byte order.
 
-	// The dictionary I downloaded is all version 2.4, so here the indexBits is
+	// Note!! The dictionary I downloaded is all version 2.4, so here the indexBits is
 	// hardcoded to 32, If you need to parse 3.0 or higher, read the documentation
 	// above, and rewrite.
 	idx := &Index{
@@ -130,6 +134,7 @@ func newIndex(ir io.Reader) (*Index, error) {
 		index:     0,
 		indexBits: 32,
 		wordDict:  make(map[string][]Word),
+		r:         bufio.NewReader(bytes.NewReader(c)),
 	}
 	idx.parse()
 
@@ -156,20 +161,26 @@ func (idx *Index) nextWord() (string, error) {
 		w: wordStr,
 	}
 
+	// jump over '\0'
 	idx.offset = end + 1
 	// 2. word_data_offset;  // word data's offset in .dict file
 	if idx.indexBits == 64 {
 		var wOffset uint64
+
 		offByte := idx.content[idx.offset : idx.offset+8]
+
 		r := bytes.NewReader(offByte)
 		binary.Read(r, binary.BigEndian, &wOffset)
+
 		idx.offset += 8
 		newWord.offset = uint32(wOffset)
 	} else if idx.indexBits == 32 {
 		var wOffset uint32
+
 		offByte := idx.content[idx.offset : idx.offset+4]
 		r := bytes.NewReader(offByte)
 		binary.Read(r, binary.BigEndian, &wOffset)
+
 		idx.offset += 4
 		newWord.offset = wOffset
 	} else {
