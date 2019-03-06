@@ -20,7 +20,7 @@ func TestFileNew(t *testing.T) {
 }
 
 func TestIndexNew(t *testing.T) {
-	f, err := os.Open("./testdata/stardict-gaojihanyudacidian_fix-2.4.2/gaojihanyudacidian_fix.idx")
+	f, err := os.Open("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.idx")
 	if err != nil {
 		t.Fatalf("%s\n", "newIndex get nil Index")
 	}
