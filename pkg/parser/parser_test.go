@@ -34,17 +34,17 @@ func TestIndexNew(t *testing.T) {
 }
 
 func TestDictionary(t *testing.T) {
-	f1, err := os.Open("./testdata/stardict-gaojihanyudacidian_fix-2.4.2/gaojihanyudacidian_fix.ifo")
+	f1, err := os.Open("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.ifo")
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
 	defer f1.Close()
-	f2, err := os.Open("./testdata/stardict-gaojihanyudacidian_fix-2.4.2/gaojihanyudacidian_fix.idx")
+	f2, err := os.Open("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.idx")
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
 	defer f2.Close()
-	f3, err := os.Open("./testdata/stardict-gaojihanyudacidian_fix-2.4.2/gaojihanyudacidian_fix.dict.dz")
+	f3, err := os.Open("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.dict.dz")
 	if err != nil {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
@@ -54,17 +54,22 @@ func TestDictionary(t *testing.T) {
 		t.Fatalf("%s\n", "fail to create new dictionary")
 	}
 	fmt.Println(len(d.index.wordLst))
+	sets := make(map[uint8]struct{})
 	for _, w := range d.index.wordLst {
-		fmt.Println("====")
+		// fmt.Println("====")
 		values := d.GetWord(w.w)
-		fmt.Println(w.w)
+		// fmt.Println(w.w)
 		for _, v := range values {
-			for k, m := range v {
-				fmt.Println(string(k))
-				fmt.Println(string(m))
+			for k /*, m*/ := range v {
+				if _, ok := sets[k]; !ok {
+					sets[k] = struct{}{}
+				}
+				// fmt.Println(string(k))
+				// fmt.Println(string(m))
 			}
 		}
 	}
+	t.Log(len(sets))
 	// vs := d.GetFormatedMeaning("堆金积玉")
 	// for _, v := range vs {
 	// 	fmt.Println(v)

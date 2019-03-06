@@ -172,6 +172,9 @@ func (idx *Index) nextWord() (string, error) {
 
 	// jump over '\0'
 	idx.offset = end + 1
+	// every round we read three elements
+	// we are get this word using slice here we just make reader
+	// go on
 	idx.r.Discard(idx.offset - prevOffset)
 	// 2. word_data_offset;  // word data's offset in .dict file
 	if idx.indexBits == 64 {
@@ -194,6 +197,7 @@ func (idx *Index) nextWord() (string, error) {
 
 	// word_data_size;  // word data's total size in .dict file
 	// word_data_size should be 32-bits unsigned number in network byte order.
+	// unlike word_data_offset it is *always* uint32
 	var wSize uint32
 	binary.Read(idx.r, binary.BigEndian, &wSize)
 	newWord.size = wSize
@@ -284,6 +288,7 @@ func NewDictionary(ifo, idx, dict io.Reader) (*Dictionary, error) {
 	return d, nil
 }
 
+// https://github.com/huzheng001/stardict-3/blob/master/dict/doc/StarDictFileFormat#L106
 func (d *Dictionary) isSameTypeSequence() bool {
 	_, ok := d.info.Dict["sametypesequence"]
 	return ok
@@ -291,19 +296,20 @@ func (d *Dictionary) isSameTypeSequence() bool {
 
 // GetWord get the meaning of word
 func (d *Dictionary) GetWord(word string) []map[uint8][]byte {
-	index, ok := d.index.wordDict[word]
+	// one word may have multiple index, we collect them all
+	indexes, ok := d.index.wordDict[word]
 	if !ok {
 		return nil
 	}
 	var ret []map[uint8][]byte
-	for _, curWord := range index {
+	for _, curWord := range indexes {
 		d.offset = curWord.offset
 		if d.isSameTypeSequence() {
 			// set offset to this word meaning
-			curValue := d.getWordSameSequence(curWord)
+			curValue := d.getWordSameSequence(&curWord)
 			ret = append(ret, curValue)
 		} else {
-			curValue := d.getWordNonSameSequence(curWord)
+			curValue := d.getWordNonSameSequence(&curWord)
 			ret = append(ret, curValue)
 		}
 	}
@@ -331,7 +337,25 @@ func (d *Dictionary) GetFormatedMeaning(word string) []string {
 	return ret
 }
 
-func (d *Dictionary) getWordNonSameSequence(word Word) map[uint8][]byte {
+// https://github.com/huzheng001/stardict-3/blob/master/dict/doc/StarDictFileFormat#L323
+// If the "sametypesequence" option is not used in the .ifo file, then
+// the .dict file has fields in the following order:
+// ==============
+// word_1_data_1_type; // a single char identifying the data type
+// word_1_data_1_data; // the data
+// word_1_data_2_type;
+// word_1_data_2_data;
+// ...... // the number of data entries for each word is determined by
+//        // word_data_size in .idx file
+// word_2_data_1_type;
+// word_2_data_1_data;
+// ......
+// ==============
+// It's important to note that each field in each word indicates its
+// own length, as described below.  The number of possible fields per
+// word is also not fixed, and is determined by simply reading data until
+// you've read word_data_size bytes for that word.
+func (d *Dictionary) getWordNonSameSequence(word *Word) map[uint8][]byte {
 	ret := make(map[uint8][]byte)
 	var readSize uint32
 	startOffset := d.offset
@@ -349,7 +373,7 @@ func (d *Dictionary) getWordNonSameSequence(word Word) map[uint8][]byte {
 			value := d.content[d.offset:end]
 			d.offset = uint32(end) + 1
 			ret[c] = value
-		} else {
+		} else { // normaly this should be W(wav) and P(picture)
 			sizeByte := d.content[d.offset : d.offset+4]
 			r := bytes.NewReader(sizeByte)
 			var s uint32
@@ -366,7 +390,7 @@ func (d *Dictionary) getWordNonSameSequence(word Word) map[uint8][]byte {
 	return ret
 }
 
-func (d *Dictionary) getWordSameSequence(word Word) map[uint8][]byte {
+func (d *Dictionary) getWordSameSequence(word *Word) map[uint8][]byte {
 	ret := make(map[uint8][]byte)
 	sametypesequence := d.info.Dict["sametypesequence"]
 
