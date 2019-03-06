@@ -2,20 +2,21 @@ package parser
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
 )
 
 func TestFileNew(t *testing.T) {
-	f, err := os.Open("./testdata/stardict-gaojihanyudacidian_fix-2.4.2/gaojihanyudacidian_fix.ifo")
-	if err != nil {
-		t.Fatalf("%s\n", "newInfo fail")
-	}
+	a := require.New(t)
+
+	f, err := os.Open("./testdata/stardict-langdao-ec-gb-2.4.2/langdao-ec-gb.ifo")
+	a.Nil(err, "fail to open file")
 	defer f.Close()
-	_, err = newInfo(f)
-	if err != nil {
-		t.Fatalf("%s\n", "newInfo fail")
-	}
+	info, err := newInfo(f)
+	a.Nil(err, "fail to create info obj")
+	a.Equal(len(info.Dict), 9, "fail to parse info file")
+	t.Log(info.String())
 }
 
 func TestIndexNew(t *testing.T) {

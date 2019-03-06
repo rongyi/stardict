@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -19,6 +18,10 @@ var (
 	errorGzip = errors.New("gunzip fail")
 )
 
+const (
+	infoHeaderKey = "header"
+)
+
 // Info indicate the stardict ifo file
 type Info struct {
 	Content string
@@ -29,10 +32,12 @@ type Info struct {
 func newInfo(ir io.Reader) (*Info, error) {
 	i := &Info{}
 	c, err := ioutil.ReadAll(ir)
+
 	if err != nil {
 		return nil, err
 	}
 	i.Content = string(c)
+
 	d, err := parseInfo(i.Content)
 	if err != nil {
 		return nil, err
@@ -50,6 +55,7 @@ func parseInfo(content string) (map[string]string, error) {
 
 	ret := make(map[string]string)
 	ret["header"] = lines[0]
+
 	for _, l := range lines[1:] {
 		if l == "" {
 			continue
@@ -58,21 +64,29 @@ func parseInfo(content string) (map[string]string, error) {
 		if len(secs) != 2 {
 			return nil, errors.New("key value pair fail")
 		}
-		key := strings.Trim(secs[0], "\n ")
-		value := strings.Trim(secs[1], "\n ")
+		// strip space and \n if there are any
+		key := strings.ToLower(strings.Trim(secs[0], "\n "))
+		value := strings.ToLower(strings.Trim(secs[1], "\n "))
+
 		ret[key] = value
 	}
+
 	return ret, nil
 }
 
 func (i *Info) String() string {
-	var ret []string
-	for key := range i.Dict {
-		cur := fmt.Sprintf("%s: %s", key, i.Dict[key])
-		ret = append(ret, cur)
-	}
+	var sb strings.Builder
 
-	return strings.Join(ret, "\n")
+	for k, v := range i.Dict {
+		sb.WriteString(k)
+		sb.WriteString(": ")
+		sb.WriteString(v)
+		sb.WriteString("\n")
+	}
+	// drop last \n
+	ret := sb.String()
+
+	return strings.TrimRight(ret, "\n")
 }
 
 // Word represent the dictionary unit: word
