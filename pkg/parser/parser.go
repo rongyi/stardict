@@ -10,6 +10,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"unicode"
 )
 
 var (
@@ -357,6 +358,7 @@ func (d *Dictionary) GetFormatedMeaning(word string) []string {
 // you've read word_data_size bytes for that word.
 func (d *Dictionary) getWordNonSameSequence(word *Word) map[uint8][]byte {
 	ret := make(map[uint8][]byte)
+
 	var readSize uint32
 	startOffset := d.offset
 	for readSize < word.size {
@@ -364,10 +366,17 @@ func (d *Dictionary) getWordNonSameSequence(word *Word) map[uint8][]byte {
 		r := bytes.NewReader(typeByte)
 		var c uint8
 		binary.Read(r, binary.BigEndian, &c)
-		// pass type byte
+		// jump over type byte
 		d.offset++
 
-		if strings.Index("mlgtxykwhnr", string(c)) >= 0 {
+		// these are all string
+		// https://github.com/huzheng001/stardict-3/blob/master/dict/doc/StarDictFileFormat#L378
+		// Lower-case characters signify that a field's size is determined by a
+		// terminating '\0', while upper-case characters indicate that the data
+		// begins with a network byte-ordered guint32 that gives the length of
+		// the following data's size (NOT the whole size which is 4 bytes bigger).
+		if unicode.IsLower(rune(c)) {
+			// assume the data is always respect the format, so we don't check end is -1
 			end := bytes.IndexByte(d.content[d.offset:], '\000')
 			end += int(d.offset)
 			value := d.content[d.offset:end]
