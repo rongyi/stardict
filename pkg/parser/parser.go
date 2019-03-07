@@ -317,6 +317,28 @@ func (d *Dictionary) GetWord(word string) []map[uint8][]byte {
 	return ret
 }
 
+type Inserter interface {
+	// Insert(w, m string) error
+	Insert([][]string) error
+}
+
+// DumpLangdao dump langdao dict to db
+// this dict has only 'm' i.e. pure text meaning
+func (d *Dictionary) DumpLangdao(it Inserter) error {
+	ret := [][]string{}
+
+	for _, w := range d.index.wordLst {
+		values := d.GetWord(w.w)
+		for _, v := range values {
+			for _, m := range v {
+				ret = append(ret, []string{w.w, string(m)})
+			}
+		}
+	}
+
+	return it.Insert(ret)
+}
+
 func (d *Dictionary) GetFormatedMeaning(word string) []string {
 	ret := []string{}
 	ms := d.GetWord(word)
@@ -414,6 +436,9 @@ func (d *Dictionary) getWordSameSequence(word *Word) map[uint8][]byte {
 
 			// last one
 			if i == len(sametypesequence)-1 {
+				//     |----------------- size -----------------------|
+				//     |                            |
+				//    startOffset                offset
 				value := d.getEntryFieldSize(word.size - (d.offset - startOffset))
 				ret[c] = value
 			} else {
