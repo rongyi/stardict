@@ -420,6 +420,8 @@ func (d *Dictionary) getWordSameSequence(word *Word) map[uint8][]byte {
 				end := bytes.IndexByte(d.content[d.offset:], '\000')
 				end += int(d.offset)
 				value := d.content[d.offset:end]
+
+				// jump over this range including '\0'
 				d.offset = uint32(end) + 1
 				ret[c] = value
 			}
