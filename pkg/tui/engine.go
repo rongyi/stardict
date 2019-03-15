@@ -1,61 +1,241 @@
-package tui
+package query
 
 import (
-	"bufio"
-	"fmt"
 	"io"
-	"os"
-	"strings"
+	// "log"
+	// "strings"
 
 	"github.com/nsf/termbox-go"
-	"github.com/rongyi/stardict/pkg/dump"
-	"github.com/rongyi/stardict/pkg/parser"
 )
 
 const (
 	DefaultY     int    = 1
-	FilterPrompt string = "[Word]> "
+	FilterPrompt string = "[Search]>"
 )
 
-type Engine struct {
-	queryCursorIdx int
-	query          *Query
-	term           *Terminal
-	contentOffset  int
-	input          []string
-	dict           *parser.Dictionary
-	prevSave       string
-	saveFile       *os.File
+type EngineInterface interface {
+	Run() EngineResultInterface
+	GetQuery() QueryInterface
 }
 
-func NewEngine(ifo, idx, d io.Reader) (*Engine, error) {
-	var fflow []string
-	dict, err := parser.NewDictionary(ifo, idx, d)
-	if err != nil {
-		return nil, err
-	}
-	saveFD, err := dump.OpenFile()
-	if err != nil {
-		return nil, err
-	}
+type EngineResultInterface interface {
+	GetQueryString() string
+	GetContent() string
+	GetError() error
+}
 
+type Engine struct {
+	// manager        *JsonManager
+	query          QueryInterface
+	queryCursorIdx int
+	term           *Terminal
+	complete       []string
+	candidates     []string
+	candidatemode  bool
+	candidateidx   int
+	contentOffset  int
+	queryConfirm   bool
+	// prettyResult   bool
+}
+
+type EngineAttribute struct {
+	DefaultQuery string
+	Monochrome   bool
+	// PrettyResult bool
+}
+
+func NewEngine(s io.Reader, ea *EngineAttribute) (EngineInterface, error) {
 	e := &Engine{
-		queryCursorIdx: 0,
-		query:          NewQuery([]rune("")),
-		term:           NewTerminal(FilterPrompt, DefaultY),
-		contentOffset:  0,
-		input:          fflow,
-		dict:           dict,
-		saveFile:       saveFD,
+		term:  NewTerminal(FilterPrompt, DefaultY, ea.Monochrome),
+		query: NewQuery([]rune(ea.DefaultQuery)),
+		// 第一个是全部prefix减去当前的输入，
+		// 第二个是全部的prefix
+		complete:      []string{"", ""},
+		candidates:    []string{},
+		candidatemode: false,
+		candidateidx:  0,
+		contentOffset: 0,
+		queryConfirm:  false,
+		// prettyResult:  ea.PrettyResult,
 	}
 	e.queryCursorIdx = e.query.Length()
-
 	return e, nil
 }
 
-func (e *Engine) inputChar(ch rune) {
-	_ = e.query.Insert([]rune{ch}, e.queryCursorIdx)
-	e.queryCursorIdx++
+type EngineResult struct {
+	content string
+	qs      string
+	err     error
+}
+
+func (er *EngineResult) GetQueryString() string {
+	return er.qs
+}
+
+func (er *EngineResult) GetContent() string {
+	return er.content
+}
+func (er *EngineResult) GetError() error {
+	return er.err
+}
+
+func (e *Engine) GetQuery() QueryInterface {
+	return e.query
+}
+
+func (e *Engine) Run() EngineResultInterface {
+
+	err := termbox.Init()
+	if err != nil {
+		panic(err)
+	}
+	defer termbox.Close()
+
+	var contents []string
+
+	for {
+
+		if e.query.StringGet() == "" {
+			e.queryCursorIdx = e.query.Length()
+		}
+
+		bl := len(contents)
+		contents = e.getContents()
+		e.setCandidateData()
+		e.queryConfirm = false
+		if bl != len(contents) {
+			e.contentOffset = 0
+		}
+
+		ta := &TerminalDrawAttributes{
+			Query:           e.query.StringGet(),
+			Contents:        contents,
+			CandidateIndex:  e.candidateidx,
+			ContentsOffsetY: e.contentOffset,
+			Complete:        e.complete[0],
+			Candidates:      e.candidates,
+			CursorOffset:    e.query.IndexOffset(e.queryCursorIdx),
+		}
+		err = e.term.Draw(ta)
+		if err != nil {
+			panic(err)
+		}
+
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			switch ev.Key {
+			case 0:
+				e.inputChar(ev.Ch)
+			case termbox.KeyBackspace, termbox.KeyBackspace2:
+				e.deleteChar()
+			case termbox.KeyTab:
+				e.tabAction()
+			case termbox.KeyArrowLeft, termbox.KeyCtrlB:
+				e.moveCursorBackward()
+			case termbox.KeyArrowRight, termbox.KeyCtrlF:
+				e.moveCursorForward()
+			case termbox.KeyHome, termbox.KeyCtrlA:
+				e.moveCursorToTop()
+			case termbox.KeyEnd, termbox.KeyCtrlE:
+				e.moveCursorToEnd()
+			case termbox.KeyCtrlK:
+				e.scrollToAbove()
+			case termbox.KeyCtrlJ:
+				e.scrollToBelow()
+			case termbox.KeyCtrlG:
+				e.scrollToBottom(len(contents))
+			case termbox.KeyCtrlT:
+				e.scrollToTop()
+			// case termbox.KeyCtrlL:
+			// 	e.toggleKeymode()
+			case termbox.KeyCtrlU:
+				e.deleteLineQuery()
+			case termbox.KeyCtrlW:
+				e.clearInput()
+			case termbox.KeyEsc:
+				e.escapeCandidateMode()
+			case termbox.KeyEnter:
+				if !e.candidatemode {
+					var cc string
+					var err error
+					// if e.prettyResult {
+					// 	cc, _, _, err = e.manager.GetPretty(e.query, true)
+					// } else {
+					// 	cc, _, _, err = e.manager.Get(e.query, true)
+					// }
+
+					// TODO: get word meaning from db
+
+					return &EngineResult{
+						content: cc,
+						qs:      e.query.StringGet(),
+						err:     err,
+					}
+				}
+				e.confirmCandidate()
+			case termbox.KeyCtrlC:
+				return &EngineResult{}
+			default:
+			}
+		case termbox.EventError:
+			panic(ev.Err)
+			break
+		default:
+		}
+	}
+}
+
+func (e *Engine) getContents() []string {
+	var contents []string
+	// c, e.complete, e.candidates, _ = e.manager.GetPretty(e.query, e.queryConfirm)
+	// TODO
+	input := e.query.StringGet()
+	if input == "h" {
+		// c = "你好"
+		e.complete = []string{"ell", "hell"}
+		e.candidates = []string{"hell", "hello"}
+	} else if input == "he" {
+		e.complete = []string{"ll", "hell"}
+		e.candidates = []string{"hell", "hello"}
+	} else if input == "hel" {
+		e.complete = []string{"l", "hell"}
+		e.candidates = []string{"hell", "hello"}
+	} else if input == "hell" {
+		e.complete = []string{"", "hell"}
+		e.candidates = []string{"hell", "hello"}
+	} else {
+		e.complete = []string{"", ""}
+		e.candidates = []string{}
+	}
+
+	if e.queryConfirm {
+		contents = []string{"地狱", "炼狱"}
+	}
+
+	return contents
+}
+
+func (e *Engine) setCandidateData() {
+	if l := len(e.candidates); e.complete[0] == "" && l > 1 {
+		if e.candidateidx >= l {
+			e.candidateidx = 0
+		}
+	} else {
+		e.candidatemode = false
+	}
+	if !e.candidatemode {
+		e.candidateidx = 0
+		e.candidates = []string{}
+	}
+}
+
+func (e *Engine) confirmCandidate() {
+	// delete all and put the candidate on
+	e.clearInput()
+
+	_ = e.query.StringAdd(e.candidates[e.candidateidx])
+	e.queryCursorIdx = e.query.Length()
+	e.queryConfirm = true
 }
 
 func (e *Engine) deleteChar() {
@@ -63,31 +243,12 @@ func (e *Engine) deleteChar() {
 		_ = e.query.Delete(i)
 		e.queryCursorIdx--
 	}
+
 }
 
-func (e *Engine) clearChar() {
-	for i := e.queryCursorIdx - 1; i >= 0; i-- {
-		_ = e.query.Delete(i)
-		e.queryCursorIdx--
-	}
-}
-
-func (e *Engine) moveCursorBackward() {
-	if i := e.queryCursorIdx - 1; i >= 0 {
-		e.queryCursorIdx--
-	}
-}
-
-func (e *Engine) moveCursorForward() {
-	if e.query.Length() > e.queryCursorIdx {
-		e.queryCursorIdx++
-	}
-}
-func (e *Engine) moveCursorToTop() {
+func (e *Engine) deleteLineQuery() {
+	_ = e.query.StringSet("")
 	e.queryCursorIdx = 0
-}
-func (e *Engine) moveCursorToEnd() {
-	e.queryCursorIdx = e.query.Length()
 }
 
 func (e *Engine) scrollToBelow() {
@@ -108,117 +269,58 @@ func (e *Engine) scrollToTop() {
 	e.contentOffset = 0
 }
 
-func (e *Engine) getContents() []string {
-	word := e.query.StringGet()
-	if word == "" {
-		return e.input
-	}
-	return e.dict.GetFormatedMeaning(word)
+// func (e *Engine) toggleKeyFinished() {
+// 	e.keyFinished = !e.keyFinished
+// }
+
+func (e *Engine) clearInput() {
+	// just reset to empty
+	e.query.Set([]rune(""))
+	e.queryCursorIdx = e.query.Length()
 }
 
-func (e *Engine) Run() []string {
-	err := termbox.Init()
-
-	if err != nil {
-		panic(err)
-	}
-	defer e.close()
-	defer termbox.Close()
-
-	var contents []string
-mainloop:
-	for {
-		bl := len(contents)
-		contents = e.getContents()
-		if bl != len(contents) {
-			e.contentOffset = 0
+func (e *Engine) tabAction() {
+	if !e.candidatemode {
+		e.candidatemode = true
+		if e.complete[0] != e.complete[1] && e.complete[0] != "" {
+			e.clearInput()
+			_ = e.query.StringAdd(e.complete[1])
+		} else {
+			_ = e.query.StringAdd(e.complete[0])
 		}
-
-		ta := &TerminalAttributes{
-			Query:           e.query.StringGet(),
-			CursorOffset:    e.query.IndexOffset(e.queryCursorIdx),
-			Contents:        contents,
-			ContentsOffsetY: e.contentOffset,
-		}
-		err = e.term.Draw(ta)
-		if err != nil {
-			panic(err)
-		}
-
-		switch ev := termbox.PollEvent(); ev.Type {
-		case termbox.EventKey:
-			switch ev.Key {
-			case 0, termbox.KeySpace:
-				e.inputChar(ev.Ch)
-			case termbox.KeyBackspace, termbox.KeyBackspace2:
-				e.deleteChar()
-			case termbox.KeyCtrlU:
-				e.clearChar()
-			case termbox.KeyArrowLeft, termbox.KeyCtrlB:
-				e.moveCursorBackward()
-			case termbox.KeyArrowRight, termbox.KeyCtrlF:
-				e.moveCursorForward()
-			case termbox.KeyHome, termbox.KeyCtrlA:
-				e.moveCursorToTop()
-			case termbox.KeyEnd, termbox.KeyCtrlE:
-				e.moveCursorToEnd()
-			case termbox.KeyCtrlK:
-				e.scrollToAbove()
-			case termbox.KeyCtrlJ:
-				e.scrollToBelow()
-			case termbox.KeyCtrlG:
-				e.scrollToBottom(len(contents))
-			case termbox.KeyCtrlT:
-				e.scrollToTop()
-			case termbox.KeyCtrlS:
-				e.save()
-			case termbox.KeyCtrlC:
-				break mainloop
-			}
-		case termbox.EventError:
-			break mainloop
-		}
+	} else {
+		e.candidateidx = e.candidateidx + 1
 	}
-
-	return contents
+	e.queryCursorIdx = e.query.Length()
 }
 
-func (e *Engine) RunWithOutput() int {
-	filterOutput := e.Run()
-	if len(filterOutput) > 0 {
-		fmt.Println(strings.Join(filterOutput, "\n"))
-	}
-
-	return 0
+func (e *Engine) escapeCandidateMode() {
+	e.candidatemode = false
+}
+func (e *Engine) inputChar(ch rune) {
+	_ = e.query.Insert([]rune{ch}, e.queryCursorIdx)
+	e.queryCursorIdx++
 }
 
-func (e *Engine) save() {
-	word := e.query.StringGet()
-	// duplicate save
-	if word == e.prevSave {
-		return
-	}
-	if e.prevSave == "" && word != "" {
-		e.prevSave = word
-	}
-	meaning := e.dict.GetFormatedMeaning(word)
-	if word != "" && len(meaning) != 0 {
-		content := word + "\n" + strings.Join(meaning, "\n")
-		e.dump(content)
+func (e *Engine) moveCursorBackward() {
+	if i := e.queryCursorIdx - 1; i >= 0 {
+		e.queryCursorIdx--
 	}
 }
 
-func (e *Engine) dump(s string) error {
-	io := bufio.NewWriter(e.saveFile)
-	io.Write(dump.WordSeperator)
-	io.WriteByte('\n')
-	io.WriteString(s)
-	io.WriteByte('\n')
-	io.Flush()
-	return nil
+func (e *Engine) moveCursorForward() {
+	if e.query.Length() > e.queryCursorIdx {
+		e.queryCursorIdx++
+	}
 }
 
-func (e *Engine) close() {
-	e.saveFile.Sync()
-	e.saveFile.Close()
+func (e *Engine) moveCursorWordBackwark() {
+}
+func (e *Engine) moveCursorWordForward() {
+}
+func (e *Engine) moveCursorToTop() {
+	e.queryCursorIdx = 0
+}
+func (e *Engine) moveCursorToEnd() {
+	e.queryCursorIdx = e.query.Length()
 }
