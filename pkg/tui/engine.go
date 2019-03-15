@@ -1,11 +1,11 @@
 package tui
 
 import (
-	"io"
-	// "log"
-	// "strings"
+	"log"
+	"strings"
 
 	"github.com/nsf/termbox-go"
+	"github.com/rongyi/stardict/pkg/sql"
 )
 
 const (
@@ -36,6 +36,7 @@ type Engine struct {
 	contentOffset  int
 	queryConfirm   bool
 	// prettyResult   bool
+	db *sql.Database
 }
 
 type EngineAttribute struct {
@@ -44,7 +45,11 @@ type EngineAttribute struct {
 	// PrettyResult bool
 }
 
-func NewEngine(s io.Reader, ea *EngineAttribute) (EngineInterface, error) {
+func NewEngine(liteFile string, ea *EngineAttribute) (EngineInterface, error) {
+	db, err := sql.NewDatabase(liteFile)
+	if err != nil {
+		return nil, err
+	}
 	e := &Engine{
 		term:  NewTerminal(FilterPrompt, DefaultY, ea.Monochrome),
 		query: NewQuery([]rune(ea.DefaultQuery)),
@@ -57,6 +62,7 @@ func NewEngine(s io.Reader, ea *EngineAttribute) (EngineInterface, error) {
 		contentOffset: 0,
 		queryConfirm:  false,
 		// prettyResult:  ea.PrettyResult,
+		db: db,
 	}
 	e.queryCursorIdx = e.query.Length()
 	return e, nil
@@ -84,6 +90,7 @@ func (e *Engine) GetQuery() QueryInterface {
 }
 
 func (e *Engine) Run() EngineResultInterface {
+	defer e.db.Close()
 
 	err := termbox.Init()
 	if err != nil {
@@ -190,33 +197,31 @@ func (e *Engine) getContents() []string {
 	// c, e.complete, e.candidates, _ = e.manager.GetPretty(e.query, e.queryConfirm)
 	// TODO
 	input := e.query.StringGet()
-	if input == "h" {
-		// c = "你好"
-		e.complete = []string{"ell", "hell"}
-		e.candidates = []string{"hell", "hello"}
-	} else if input == "he" {
-		e.complete = []string{"ll", "hell"}
-		e.candidates = []string{"hell", "hello"}
-	} else if input == "hel" {
-		e.complete = []string{"l", "hell"}
-		e.candidates = []string{"hell", "hello"}
-	} else if input == "hell" {
-		e.complete = []string{"", "hell"}
-		e.candidates = []string{"hell", "hello"}
-	} else {
-		e.complete = []string{"", ""}
-		e.candidates = []string{}
-	}
 
 	if e.queryConfirm {
-		contents = []string{"地狱", "炼狱"}
+		e.candidates = []string{}
+		if explain, err := e.db.Exact(input); err == nil {
+			contents = strings.Split(explain, "\n")
+		}
+	} else {
+		// too much candidates, we do nothing
+		if len(input) < 5 {
+			e.candidates = []string{}
+		} else {
+			pres, err := e.db.Prefix(input)
+			if err != nil {
+				e.candidates = []string{}
+			} else {
+				e.candidates = pres
+			}
+		}
 	}
 
 	return contents
 }
 
 func (e *Engine) setCandidateData() {
-	if l := len(e.candidates); e.complete[0] == "" && l > 1 {
+	if l := len(e.candidates); e.complete[0] == "" && l >= 1 {
 		if e.candidateidx >= l {
 			e.candidateidx = 0
 		}

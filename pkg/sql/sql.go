@@ -115,3 +115,21 @@ func (d *Database) Prefix(key string) ([]string, error) {
 	}
 	return ret, nil
 }
+
+func (d *Database) Exact(key string) (string, error) {
+	stmt, err := d.db.Prepare("select meaning from words where word = ?")
+	if err != nil {
+		return "", err
+	}
+	defer stmt.Close()
+
+	var ret string
+	row := stmt.QueryRow(key)
+
+	err = row.Scan(&ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
+}
