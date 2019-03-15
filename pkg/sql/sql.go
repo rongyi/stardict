@@ -85,3 +85,33 @@ func (d *Database) Insert(bulks [][]string) error {
 	err = tx.Commit()
 	return err
 }
+
+func (d *Database) Prefix(key string) ([]string, error) {
+	stmt, err := d.db.Prepare("select word from words where word like ?")
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(key + `%`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ret := []string{}
+
+	for rows.Next() {
+		var m string
+		err = rows.Scan(&m)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, m)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
