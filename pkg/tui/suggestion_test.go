@@ -1,1 +1,1 @@
-package query
+package tui
