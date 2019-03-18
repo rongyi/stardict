@@ -39,7 +39,12 @@ func TestNewQueryWithString(t *testing.T) {
 	q := NewQueryWithString("a   b")
 
 	assert.Equal(*q.query, []rune("a b"))
-	// assert.Equal(*q.complete, []rune(""))
+
+	q = NewQueryWithString("a ")
+	assert.Equal(*q.query, []rune("a "))
+
+	q = NewQueryWithString("a b a ")
+	assert.Equal(*q.query, []rune("a b a "))
 }
 
 func TestNewQueryWithStringWithInvalidQuery(t *testing.T) {
