@@ -165,20 +165,10 @@ func (e *Engine) Run() EngineResultInterface {
 				e.escapeCandidateMode()
 			case termbox.KeyEnter:
 				if !e.candidatemode {
-					var cc string
-					var err error
-					// if e.prettyResult {
-					// 	cc, _, _, err = e.manager.GetPretty(e.query, true)
-					// } else {
-					// 	cc, _, _, err = e.manager.Get(e.query, true)
-					// }
-
-					// TODO: get word meaning from db
-
 					return &EngineResult{
-						content: cc,
-						qs:      e.query.StringGet(),
-						err:     err,
+						content: strings.Join(contents, "\n"),
+						qs:      ta.Query,
+						err:     nil,
 					}
 				}
 				e.confirmCandidate()

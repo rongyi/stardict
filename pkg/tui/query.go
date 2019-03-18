@@ -143,7 +143,7 @@ func validate(r []rune) string {
 	}
 
 	ret := strings.Join(sec, " ")
-	if s[len(s) - 1] == ' ' {
+	if s[len(s)-1] == ' ' {
 		ret += " "
 	}
 	return ret
