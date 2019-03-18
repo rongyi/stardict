@@ -2,7 +2,7 @@ package tui
 
 import (
 	// "log"
-	"regexp"
+	"strings"
 
 	"github.com/mattn/go-runewidth"
 )
@@ -68,9 +68,10 @@ func (q *Query) IndexOffset(i int) int {
 }
 
 func (q *Query) Set(query []rune) []rune {
-	if validate(query) {
-		q.query = &query
-	}
+	str := validate(query)
+	a := []rune(str)
+	q.query = &a
+
 	return q.Get()
 }
 
@@ -130,13 +131,16 @@ func (q *Query) StringAdd(query string) string {
 	return string(q.Add([]rune(query)))
 }
 
-func validate(r []rune) bool {
+func validate(r []rune) string {
 	s := string(r)
 	if s == "" {
-		return true
+		return ""
 	}
-	if regexp.MustCompile(`^[a-zA-Z]{1,}$`).MatchString(s) {
-		return true
+	sec := strings.Fields(s)
+
+	if len(sec) == 0 {
+		return ""
 	}
-	return false
+
+	return strings.Join(sec, " ")
 }

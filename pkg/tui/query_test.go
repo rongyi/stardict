@@ -8,9 +8,9 @@ import (
 func TestValidate(t *testing.T) {
 	var assert = assert.New(t)
 
-	assert.True(validate([]rune("hello")))
-	assert.True(validate([]rune("HELLO")))
-	assert.False(validate([]rune("123")), "fail")
+	assert.True(validate([]rune("hello")) == "hello")
+	assert.True(validate([]rune("HELLO")) == "HELLO")
+	assert.True(validate([]rune("123")) == "123", "fail")
 }
 
 func TestNewQuery(t *testing.T) {
@@ -26,7 +26,7 @@ func TestNewQuery(t *testing.T) {
 func TestNewQueryWithInvalidQuery(t *testing.T) {
 	var assert = assert.New(t)
 
-	v := []rune("name...")
+	v := []rune("  ")
 	q := NewQuery(v)
 
 	assert.Equal(*q.query, []rune(""))
@@ -36,16 +36,16 @@ func TestNewQueryWithInvalidQuery(t *testing.T) {
 func TestNewQueryWithString(t *testing.T) {
 	var assert = assert.New(t)
 
-	q := NewQueryWithString("name")
+	q := NewQueryWithString("a   b")
 
-	assert.Equal(*q.query, []rune("name"))
-	assert.Equal(*q.complete, []rune(""))
+	assert.Equal(*q.query, []rune("a b"))
+	// assert.Equal(*q.complete, []rune(""))
 }
 
 func TestNewQueryWithStringWithInvalidQuery(t *testing.T) {
 	var assert = assert.New(t)
 
-	q := NewQueryWithString("name..")
+	q := NewQueryWithString("   ")
 
 	assert.Equal(*q.query, []rune(""))
 	assert.Equal(*q.complete, []rune(""))

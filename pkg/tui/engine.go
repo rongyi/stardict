@@ -1,7 +1,7 @@
 package tui
 
 import (
-	"log"
+	// "log"
 	"strings"
 
 	"github.com/nsf/termbox-go"
