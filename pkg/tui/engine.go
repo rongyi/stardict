@@ -29,7 +29,6 @@ type Engine struct {
 	query          QueryInterface
 	queryCursorIdx int
 	term           *Terminal
-	complete       []string
 	candidates     []string
 	candidatemode  bool
 	candidateidx   int
@@ -53,9 +52,6 @@ func NewEngine(liteFile string, ea *EngineAttribute) (EngineInterface, error) {
 	e := &Engine{
 		term:  NewTerminal(FilterPrompt, DefaultY, ea.Monochrome),
 		query: NewQuery([]rune(ea.DefaultQuery)),
-		// 第一个是全部prefix减去当前的输入，
-		// 第二个是全部的prefix
-		complete:      []string{"", ""},
 		candidates:    []string{},
 		candidatemode: false,
 		candidateidx:  0,
@@ -119,7 +115,6 @@ func (e *Engine) Run() EngineResultInterface {
 			Contents:        contents,
 			CandidateIndex:  e.candidateidx,
 			ContentsOffsetY: e.contentOffset,
-			Complete:        e.complete[0],
 			Candidates:      e.candidates,
 			CursorOffset:    e.query.IndexOffset(e.queryCursorIdx),
 		}
@@ -155,8 +150,6 @@ func (e *Engine) Run() EngineResultInterface {
 				e.scrollToBottom(len(contents))
 			case termbox.KeyCtrlT:
 				e.scrollToTop()
-			// case termbox.KeyCtrlL:
-			// 	e.toggleKeymode()
 			case termbox.KeyCtrlU:
 				e.deleteLineQuery()
 			case termbox.KeyCtrlW:
@@ -186,8 +179,6 @@ func (e *Engine) Run() EngineResultInterface {
 
 func (e *Engine) getContents() []string {
 	var contents []string
-	// c, e.complete, e.candidates, _ = e.manager.GetPretty(e.query, e.queryConfirm)
-	// TODO
 	input := e.query.StringGet()
 
 	if e.queryConfirm {
@@ -213,7 +204,7 @@ func (e *Engine) getContents() []string {
 }
 
 func (e *Engine) setCandidateData() {
-	if l := len(e.candidates); e.complete[0] == "" && l >= 1 {
+	if l := len(e.candidates); l >= 1 {
 		if e.candidateidx >= l {
 			e.candidateidx = 0
 		}
@@ -279,12 +270,6 @@ func (e *Engine) clearInput() {
 func (e *Engine) tabAction() {
 	if !e.candidatemode {
 		e.candidatemode = true
-		if e.complete[0] != e.complete[1] && e.complete[0] != "" {
-			e.clearInput()
-			_ = e.query.StringAdd(e.complete[1])
-		} else {
-			_ = e.query.StringAdd(e.complete[0])
-		}
 	} else {
 		e.candidateidx = e.candidateidx + 1
 	}

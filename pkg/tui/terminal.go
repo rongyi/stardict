@@ -24,9 +24,9 @@ type TerminalDrawAttributes struct {
 	Contents        []string
 	CandidateIndex  int
 	ContentsOffsetY int
-	Complete        string
-	Candidates      []string
-	CursorOffset    int
+	// Complete        string
+	Candidates   []string
+	CursorOffset int
 }
 
 func NewTerminal(prompt string, defaultY int, monochrome bool) *Terminal {
@@ -46,7 +46,7 @@ func NewTerminal(prompt string, defaultY int, monochrome bool) *Terminal {
 func (t *Terminal) Draw(attr *TerminalDrawAttributes) error {
 
 	query := attr.Query
-	complete := attr.Complete
+	// complete := attr.Complete
 	rows := attr.Contents
 	candidates := attr.Candidates
 	candidateidx := attr.CandidateIndex
@@ -56,7 +56,7 @@ func (t *Terminal) Draw(attr *TerminalDrawAttributes) error {
 
 	y := t.defaultY
 
-	t.drawFilterLine(query, complete)
+	t.drawFilterLine(query)
 
 	if len(candidates) > 0 {
 		y = t.drawCandidates(0, t.defaultY, candidateidx, candidates)
@@ -79,26 +79,17 @@ func (t *Terminal) Draw(attr *TerminalDrawAttributes) error {
 	return nil
 }
 
-func (t *Terminal) drawFilterLine(qs string, complete string) error {
+func (t *Terminal) drawFilterLine(qs string) error {
 	fs := t.prompt + qs
-	cs := complete
-	str := fs + cs
 
-	color := termbox.ColorDefault
 	backgroundColor := termbox.ColorDefault
 
 	var cells []termbox.Cell
-	match := []int{len(fs), len(fs + cs)}
 
-	var c termbox.Attribute
-	for i, s := range str {
-		c = color
-		if i >= match[0] && i < match[1] {
-			c = termbox.ColorGreen
-		}
+	for _, s := range fs {
 		cells = append(cells, termbox.Cell{
 			Ch: s,
-			Fg: c,
+			Fg: termbox.ColorDefault,
 			Bg: backgroundColor,
 		})
 	}
