@@ -50,8 +50,8 @@ func NewEngine(liteFile string, ea *EngineAttribute) (EngineInterface, error) {
 		return nil, err
 	}
 	e := &Engine{
-		term:  NewTerminal(FilterPrompt, DefaultY, ea.Monochrome),
-		query: NewQuery([]rune(ea.DefaultQuery)),
+		term:          NewTerminal(FilterPrompt, DefaultY, ea.Monochrome),
+		query:         NewQuery([]rune(ea.DefaultQuery)),
 		candidates:    []string{},
 		candidatemode: false,
 		candidateidx:  0,
@@ -177,30 +177,13 @@ func (e *Engine) Run() EngineResultInterface {
 	}
 }
 
-func (e *Engine) getContents() []string {
-	var contents []string
-	input := e.query.StringGet()
-
-	if e.queryConfirm {
-		e.candidates = []string{}
-		if explain, err := e.db.Exact(input); err == nil {
-			contents = strings.Split(explain, "\n")
-		}
+func (e *Engine) tabAction() {
+	if !e.candidatemode {
+		e.candidatemode = true
 	} else {
-		// too much candidates, we do nothing
-		if len(input) < 5 {
-			e.candidates = []string{}
-		} else {
-			pres, err := e.db.Prefix(input)
-			if err != nil {
-				e.candidates = []string{}
-			} else {
-				e.candidates = pres
-			}
-		}
+		e.candidateidx = e.candidateidx + 1
 	}
-
-	return contents
+	e.queryCursorIdx = e.query.Length()
 }
 
 func (e *Engine) setCandidateData() {
@@ -215,6 +198,30 @@ func (e *Engine) setCandidateData() {
 		e.candidateidx = 0
 		e.candidates = []string{}
 	}
+}
+
+// getContents has side effect!
+// it set candidates
+func (e *Engine) getContents() []string {
+	var contents []string
+	input := e.query.StringGet()
+
+	if e.queryConfirm || len(input) < 5 {
+		e.candidates = []string{}
+		if explain, err := e.db.Exact(input); err == nil {
+			contents = strings.Split(explain, "\n")
+		}
+	} else {
+		// too much candidates, we do nothing
+		pres, err := e.db.Prefix(input)
+		if err != nil {
+			e.candidates = []string{}
+		} else {
+			e.candidates = pres
+		}
+	}
+
+	return contents
 }
 
 func (e *Engine) confirmCandidate() {
@@ -264,15 +271,6 @@ func (e *Engine) scrollToTop() {
 func (e *Engine) clearInput() {
 	// just reset to empty
 	e.query.Set([]rune(""))
-	e.queryCursorIdx = e.query.Length()
-}
-
-func (e *Engine) tabAction() {
-	if !e.candidatemode {
-		e.candidatemode = true
-	} else {
-		e.candidateidx = e.candidateidx + 1
-	}
 	e.queryCursorIdx = e.query.Length()
 }
 
