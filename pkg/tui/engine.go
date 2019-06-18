@@ -2,6 +2,10 @@ package tui
 
 import (
 	// "log"
+	"io"
+	"os"
+	"os/user"
+	"path/filepath"
 	"strings"
 
 	"github.com/nsf/termbox-go"
@@ -9,8 +13,9 @@ import (
 )
 
 const (
-	DefaultY     int    = 1
-	FilterPrompt string = "[Search]>"
+	DefaultY        int    = 1
+	FilterPrompt    string = "[Search]>"
+	DefaultSaveFile        = ".startdict.txt"
 )
 
 type EngineInterface interface {
@@ -36,6 +41,8 @@ type Engine struct {
 	queryConfirm   bool
 	// prettyResult   bool
 	db *sql.Database
+	// save word in file
+	f io.WriteCloser
 }
 
 type EngineAttribute struct {
@@ -44,7 +51,18 @@ type EngineAttribute struct {
 	// PrettyResult bool
 }
 
+func openf() (io.WriteCloser, error) {
+	cur, _ := user.Current()
+	// cur.HomeDir
+	fname := filepath.Join(cur.HomeDir, DefaultSaveFile)
+	return os.OpenFile(fname, os.O_APPEND|os.O_WRONLY, 0600)
+}
+
 func NewEngine(liteFile string, ea *EngineAttribute) (EngineInterface, error) {
+	f, err := openf()
+	if err != nil {
+		return nil, err
+	}
 	db, err := sql.NewDatabase(liteFile)
 	if err != nil {
 		return nil, err
@@ -59,6 +77,7 @@ func NewEngine(liteFile string, ea *EngineAttribute) (EngineInterface, error) {
 		queryConfirm:  false,
 		// prettyResult:  ea.PrettyResult,
 		db: db,
+		f:  f,
 	}
 	e.queryCursorIdx = e.query.Length()
 	return e, nil
@@ -87,6 +106,7 @@ func (e *Engine) GetQuery() QueryInterface {
 
 func (e *Engine) Run() EngineResultInterface {
 	defer e.db.Close()
+	defer e.f.Close()
 
 	err := termbox.Init()
 	if err != nil {
@@ -156,6 +176,14 @@ func (e *Engine) Run() EngineResultInterface {
 				e.clearInput()
 			case termbox.KeyEsc:
 				e.escapeCandidateMode()
+			case termbox.KeyCtrlS:
+				if !e.candidatemode {
+					e.f.Write([]byte("========\n"))
+					e.f.Write([]byte(ta.Query))
+					e.f.Write([]byte("\n"))
+					e.f.Write([]byte(strings.Join(contents, "\n")))
+					e.f.Write([]byte("\n"))
+				}
 			case termbox.KeyEnter:
 				if !e.candidatemode {
 					return &EngineResult{

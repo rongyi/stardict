@@ -14,7 +14,7 @@ func main() {
 		Monochrome:   false,
 	}
 
-	e, err := tui.NewEngine("./langdao-ec.db", ea)
+	e, err := tui.NewEngine("/home/ry/go/src/github.com/rongyi/stardict/cmd/dbversion/langdao-ec.db", ea)
 
 	if err != nil {
 		fmt.Println(err)
