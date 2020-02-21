@@ -40,7 +40,7 @@ jobs:
         release_name: Release ${{ github.ref }}
         body: |
           Changes in this Release
-          - by action
+          - created by action
         draft: false
         prerelease: false
 
