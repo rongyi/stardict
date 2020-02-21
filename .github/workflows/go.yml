@@ -2,7 +2,7 @@ name: Go
 on:
   push:
     branches:
-      - dbversion
+      - master
 jobs:
 
   build:
@@ -28,4 +28,4 @@ jobs:
         fi
 
     - name: Build
-      run: go build -v cmd/db2
+      run: go build -v cmd/normal
