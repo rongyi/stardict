@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
 jobs:
 
   build:
@@ -26,6 +29,11 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
+
+    - name: check pull request
+      run: |
+        echo "this is a fake check"
+        exit 1
 
     - name: Build
       run: go build -v ./cmd/normal
