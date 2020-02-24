@@ -35,7 +35,7 @@ jobs:
         # git diff ${{ github.event.before }} ${{ github.sha }} cmd/normal/test.json | grep -v '^+++' |grep '^+' |sed -e 's/^+//'  > test.json
         git diff HEAD^1 HEAD cmd/normal/test.json | grep -v '^+++' |grep '^+' |sed -e 's/^+//'  > test.json
 
-        output=`curl -vv -X POST  -H 'Content-Type: application/json' -d @test.json http://47.52.153.57:62000/jsontest 2>&1 | grep 'HTTP/1.1 200 OK'`
+        output=`curl -vv -X POST  -H 'Content-Type: application/json' -d @test.json http://47.52.153.57:62000/jsontest 2>&1 | grep 'HTTP/1.1 200'`
 
         if [ -z "$output" ]
         then
@@ -110,3 +110,8 @@ jobs:
     #     asset_path: ./normal
     #     asset_name: normal
     #     asset_content_type: application/octet-stream
+
+
+    - uses: hmarr/auto-approve-action@v2.0.0
+      with:
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
