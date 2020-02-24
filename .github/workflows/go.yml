@@ -36,12 +36,12 @@ jobs:
 
         output=`curl -vv -X POST  -H 'Content-Type: application/json' -d @test.json http://47.52.153.57:62000/jsontest 2>&1 | grep 'HTTP/1.1 200 OK'`
 
-        if [ -z "$var" ]
+        if [ -z "$output" ]
         then
-            echo "\$var is empty"
+            echo "\$output is empty"
             exit -1
         else
-            echo "\$var is NOT empty"
+            echo "\$output is NOT empty, http status ok"
         fi
 
     # - name: wget
