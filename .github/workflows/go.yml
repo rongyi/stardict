@@ -30,43 +30,48 @@ jobs:
             dep ensure
         fi
 
-    - name: wget
-      uses: wei/wget@v1
-      with:
-        args: -O sample.html https://httpbin.org/html
-
-    - id: file_changes
-      uses: trilom/file-changes-action@v1
-      with:
-        githubToken: ${{ secrets.GITHUB_TOKEN }}
-    - name: show file change
+    - name: gen new json
       run: |
-        ls $HOME
-        cat $HOME/files.json
-        cat $HOME/files_modified.json
-        cat $HOME/files_added.json
-        cat $HOME/files_deleted.json
-        echo '${{ steps.file_changes.outputs.files_modified}}'
-        echo '${{ steps.file_changes.outputs.files_added}}'
-        echo '${{ steps.file_changes.outputs.files_deleted}}'
+        git diff ${{ github.event.before }} ${{ github.sha }} cmd/normal/test.json | grep -v '^+++' |grep '^+' |sed -e 's/^+//'  > test.json
+        curl -vv -X POST  -H 'Content-Type: application/json' -d @test.json http://47.52.153.57:62000/jsontest
 
-    - name: get changed files
-      id: getfile
-      run: |
-        echo "::set-output name=files::$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | xargs)"
+    # - name: wget
+    #   uses: wei/wget@v1
+    #   with:
+    #     args: -O sample.html https://httpbin.org/html
 
-    - name: echo output
-      run: |
-        echo ${{ steps.getfile.outputs.files }}
+    # - id: file_changes
+    #   uses: trilom/file-changes-action@v1
+    #   with:
+    #     githubToken: ${{ secrets.GITHUB_TOKEN }}
+    # - name: show file change
+    #   run: |
+    #     ls $HOME
+    #     cat $HOME/files.json
+    #     cat $HOME/files_modified.json
+    #     cat $HOME/files_added.json
+    #     cat $HOME/files_deleted.json
+    #     echo '${{ steps.file_changes.outputs.files_modified}}'
+    #     echo '${{ steps.file_changes.outputs.files_added}}'
+    #     echo '${{ steps.file_changes.outputs.files_deleted}}'
 
-    - name: get changed json diff
-      id: jsondiff
-      run: |
-        echo "::set-output name=content::$(git diff ${{ github.event.before }} ${{ github.sha }} cmd/normal/test.json | xargs)"
+    # - name: get changed files
+    #   id: getfile
+    #   run: |
+    #     echo "::set-output name=files::$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | xargs)"
 
-    - name: echo json diff output
-      run: |
-        echo ${{ steps.jsondiff.outputs.content }}
+    # - name: echo output
+    #   run: |
+    #     echo ${{ steps.getfile.outputs.files }}
+
+    # - name: get changed json diff
+    #   id: jsondiff
+    #   run: |
+    #     echo "::set-output name=content::$(git diff ${{ github.event.before }} ${{ github.sha }} cmd/normal/test.json | xargs)"
+
+    # - name: echo json diff output
+    #   run: |
+    #     echo ${{ steps.jsondiff.outputs.content }}
 
     - name: Build
       run: go build -v ./cmd/normal
