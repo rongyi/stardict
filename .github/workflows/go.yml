@@ -39,7 +39,7 @@ jobs:
       uses: trilom/file-changes-action@v1
       with:
         githubToken: ${{ secrets.GITHUB_TOKEN }}
-    - name: test
+    - name: show file change
       run: |
         ls $HOME
         cat $HOME/files.json
