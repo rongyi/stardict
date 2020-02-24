@@ -32,8 +32,8 @@ jobs:
 
     - name: check pull request
       run: |
-        echo "this is a fake check"
-        exit 1
+        ping -c 3 www.baidu.com
+        exit 0
 
     - name: Build
       run: go build -v ./cmd/normal
