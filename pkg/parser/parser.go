@@ -421,6 +421,23 @@ func (d *Dictionary) getWordNonSameSequence(word *Word) map[uint8][]byte {
 	return ret
 }
 
+// Suppose the "sametypesequence" option is used in the .idx file, and
+// the option is set like this:
+// sametypesequence=tm
+// Then the .dict file will look like this:
+// ==============
+// word_1_data_1_data
+// word_1_data_2_data
+// word_2_data_1_data
+// word_2_data_2_data
+// ......
+// ==============
+// The first data entry for each word will have a terminating '\0', but
+// the second entry will not have a terminating '\0'.  The omissions of
+// the type chars and of the last field's size information are the
+// optimizations required by the "sametypesequence" option described
+// above.
+
 func (d *Dictionary) getWordSameSequence(word *Word) map[uint8][]byte {
 	ret := make(map[uint8][]byte)
 	sametypesequence := d.info.Dict["sametypesequence"]
