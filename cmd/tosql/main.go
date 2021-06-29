@@ -1,7 +1,7 @@
 package main
 
 import (
-	"flag"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,22 +11,38 @@ import (
 	"github.com/rongyi/stardict/pkg/parser"
 	"github.com/rongyi/stardict/pkg/sql"
 	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 )
 
-var (
-	dbName        string
-	dictionaryDir string
+func main() {
+	app := &cli.App{
+		Name: "tosql",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "droot",
+				Usage: "dictionary root",
+			},
+			&cli.StringFlag{
+				Name:  "dbname",
+				Usage: "db name",
+			},
+		},
+		Usage:  "convert stardict format to sql database(sqlite file)",
+		Action: rootCmd,
+	}
 
-	ifoFile  string
-	idxFile  string
-	dictFile string
-)
-
-func bindDictFile() {
-	files, err := ioutil.ReadDir(dictionaryDir)
+	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func find(sdroot string) (string, string, string) {
+	files, err := ioutil.ReadDir(sdroot)
+	if err != nil {
+		panic(err)
+	}
+	var ifoFile, idxFile, dictFile string
 
 	for _, f := range files {
 		if f.IsDir() {
@@ -34,30 +50,27 @@ func bindDictFile() {
 		}
 
 		if strings.HasSuffix(f.Name(), ".ifo") {
-			ifoFile = filepath.Join(dictionaryDir, f.Name())
+			ifoFile = filepath.Join(sdroot, f.Name())
 		} else if strings.HasSuffix(f.Name(), ".idx") {
-			idxFile = filepath.Join(dictionaryDir, f.Name())
+			idxFile = filepath.Join(sdroot, f.Name())
 		} else if strings.HasSuffix(f.Name(), "dict.dz") {
-			dictFile = filepath.Join(dictionaryDir, f.Name())
+			dictFile = filepath.Join(sdroot, f.Name())
 		}
 	}
+
+	return ifoFile, idxFile, dictFile
 }
 
-func init() {
-	flag.StringVar(&dbName, "db", "", "specify db name")
-	flag.StringVar(&dictionaryDir, "dict", "", "specify dictionary dir")
-	flag.Parse()
-}
-
-func main() {
-	if dbName == "" || dictionaryDir == "" {
-		log.Fatal("need db name and dictionary dir")
+func rootCmd(c *cli.Context) error {
+	sdRoot := c.String("droot")
+	dbName := c.String("dbname")
+	if sdRoot == "" || dbName == "" {
+		return errors.New("need to specify the stardict file and to sql file")
 	}
-	bindDictFile()
 	// assume the existed file is a db we created
 	// create db if needed
 	if _, err := os.Stat(dbName); err != nil {
-		if err := sql.CreateLangdaoTable(dbName); err != nil {
+		if err := sql.CreateDatabase(dbName); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -68,6 +81,7 @@ func main() {
 	}
 	defer db.Close()
 
+	ifoFile, idxFile, dictFile := find(sdRoot)
 	// create dictionary
 	f1, err := os.Open(ifoFile)
 	if err != nil {
@@ -90,10 +104,5 @@ func main() {
 		log.Fatalf("%s\n", "fail to create new dictionary")
 	}
 
-	// dump word to dictionary
-	if err := d.DumpLangdao(db); err != nil {
-		log.Fatal(err)
-	} else {
-		log.Infoln("dump to db success!")
-	}
+	return d.ParseDB(db)
 }
