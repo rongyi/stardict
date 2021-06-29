@@ -31,7 +31,7 @@ func (d *Database) Close() error {
 	return d.db.Close()
 }
 
-func CreateLangdaoTable(dbname string) error {
+func CreateDatabase(dbname string) error {
 	db, err := sql.Open("sqlite3", dbname)
 	if err != nil {
 		return err

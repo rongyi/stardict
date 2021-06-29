@@ -65,7 +65,6 @@ func TestQueryGet(t *testing.T) {
 	assert.Equal(q.Get(), []rune("test"))
 }
 
-
 func TestQueryGetChar(t *testing.T) {
 	var assert = assert.New(t)
 
@@ -88,7 +87,6 @@ func TestQuerySet(t *testing.T) {
 	assert.Equal([]rune("world"), q.Set([]rune("world")))
 	assert.Equal("", string(q.Set([]rune(""))))
 }
-
 
 func TestQueryAdd(t *testing.T) {
 	var assert = assert.New(t)
