@@ -67,7 +67,7 @@ func main() {
 	}
 	defer f3.Close()
 
-	engine, err := tui.NewEngine(f1, f2, f3)
+	engine, err := stardict.NewEngine(f1, f2, f3)
 	if err != nil {
 		log.Fatal(err)
 	}

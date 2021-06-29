@@ -31,7 +31,7 @@ func (d *Database) Close() error {
 	return d.db.Close()
 }
 
-func CreateLangdaoTable(dbname string) error {
+func CreateDatabase(dbname string) error {
 	db, err := sql.Open("sqlite3", dbname)
 	if err != nil {
 		return err
@@ -84,4 +84,52 @@ func (d *Database) Insert(bulks [][]string) error {
 
 	err = tx.Commit()
 	return err
+}
+
+func (d *Database) Prefix(key string) ([]string, error) {
+	stmt, err := d.db.Prepare("select word from words where word like ?")
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(key + `%`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ret := []string{}
+
+	for rows.Next() {
+		var m string
+		err = rows.Scan(&m)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, m)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (d *Database) Exact(key string) (string, error) {
+	stmt, err := d.db.Prepare("select meaning from words where word = ?")
+	if err != nil {
+		return "", err
+	}
+	defer stmt.Close()
+
+	var ret string
+	row := stmt.QueryRow(key)
+
+	err = row.Scan(&ret)
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil
 }

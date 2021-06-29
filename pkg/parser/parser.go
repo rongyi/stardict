@@ -322,9 +322,9 @@ type Inserter interface {
 	Insert([][]string) error
 }
 
-// DumpLangdao dump langdao dict to db
+// ParseDB dump langdao dict to db
 // this dict has only 'm' i.e. pure text meaning
-func (d *Dictionary) DumpLangdao(it Inserter) error {
+func (d *Dictionary) ParseDB(it Inserter) error {
 	ret := [][]string{}
 
 	for _, w := range d.index.wordLst {
