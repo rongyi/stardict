@@ -14,9 +14,9 @@ require (
 	github.com/nwidger/jsoncolor v0.1.0
 	github.com/olekukonko/tablewriter v0.0.2 // indirect
 	github.com/rivo/tview v0.0.0-20200204110323-ae3d8cac5e4b
-	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/sirupsen/logrus v1.8.1
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/stretchr/testify v1.4.0
-	github.com/urfave/cli/v2 v2.3.0 // indirect
-	golang.org/x/net v0.0.0-20191118183410-d06c31c94cae // indirect
+	github.com/urfave/cli/v2 v2.3.0
+	golang.org/x/net v0.7.0 // indirect
 )
